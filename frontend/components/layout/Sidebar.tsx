@@ -73,30 +73,6 @@ export default function Sidebar() {
                 </div>
                 <nav className="flex flex-col gap-1">
                     <button
-                        className={getItemClass('/pages/teacher/dashboard/schedule')}
-                        type="button"
-                        onClick={() => {
-                            router.push('/pages/teacher/dashboard/schedule');
-                        }}
-                    >
-                        <span className={`material-symbols-outlined text-[20px] ${isActive('/pages/teacher/dashboard/schedule') ? 'text-[#00236f]' : ''}`}>
-                            visibility
-                        </span>
-                        <span>Lịch coi thi &amp; giám sát</span>
-                    </button>
-                    <button
-                        className={getItemClass('/pages/teacher/dashboard/exam/bankQuestion')}
-                        type="button"
-                        onClick={() => {
-                            router.push('/pages/teacher/dashboard/exam/bankQuestion');
-                        }}
-                    >
-                        <span className={`material-symbols-outlined text-[20px] ${isActive('/pages/teacher/dashboard/exam/bankQuestion') ? 'text-[#00236f]' : ''}`}>
-                            inventory_2
-                        </span>
-                        <span>Ngân hàng đề thi</span>
-                    </button>
-                    <button
                         className={getItemClass('/pages/teacher/dashboard/support')}
                         type="button"
                         onClick={() => {
@@ -109,16 +85,6 @@ export default function Sidebar() {
                         <span>Hỗ trợ &amp; Quy chế khảo thí</span>
                     </button>
                 </nav>
-            </div>
-
-            <div className="p-4 m-4 rounded-xl bg-[#eff4ff] border border-[#c5c5d3] flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-[#00236f] text-xs font-bold">
-                    <span className="material-symbols-outlined text-[16px]">verified_user</span>
-                    <span>Khảo thí Bảo mật Cao</span>
-                </div>
-                <p className="text-xs text-[#515f74]">
-                    Giám sát mã hóa đầu cuối &amp; phát hiện gian lận tự động theo chuẩn ISO/IEC 27001.
-                </p>
             </div>
         </aside>
     );

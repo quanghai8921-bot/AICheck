@@ -191,14 +191,17 @@ export const HistoryExamPage: React.FC = () => {
         }}
         onLogout={() => {
           // Xử lý khi thí sinh bấm Đăng xuất từ dropdown Header
-          router.push('/student/auth/login');
+          if (typeof window !== 'undefined') {
+            sessionStorage.clear();
+          }
+          router.push('/pages/home');
         }}
       />
       {/* 2. MAIN CONTENT AREA */}
       <main className="w-full flex-1 bg-slate-100">
         <div className="relative w-full overflow-hidden">
           {/* Ambient blur background */}
-          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-blue-100/60 blur-3xl pointer-events-none" />
+          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#dce9ff]/60 blur-3xl pointer-events-none" />
           <div className="absolute top-96 -left-32 w-80 h-80 rounded-full bg-indigo-100/60 blur-3xl pointer-events-none" />
 
           <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-6 py-6 flex flex-col gap-6">
@@ -206,7 +209,7 @@ export const HistoryExamPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <button
-                  className="flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-900 transition-colors"
+                  className="flex items-center gap-1 font-semibold text-[#00236f] hover:text-[#00236f] transition-colors"
                   type="button"
                   onClick={() => router.push('/pages/student/exam/listExam')}
                 >
@@ -216,18 +219,11 @@ export const HistoryExamPage: React.FC = () => {
                 <span className="text-slate-300">/</span>
                 <span className="text-slate-600 font-medium">Lịch sử môn đã thi</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 hidden md:inline">Dữ liệu đồng bộ:</span>
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white shadow-sm border border-slate-200 text-xs text-slate-700 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  <span>Chữ ký số hợp lệ (AES-256)</span>
-                </div>
-              </div>
             </div>
 
             {/* Candidate Header Banner */}
             <div className="relative w-full rounded-2xl bg-white p-5 md:p-6 shadow-sm border border-slate-200 overflow-hidden">
-              <div className="absolute top-0 left-0 bottom-0 w-2 bg-blue-600" />
+              <div className="absolute top-0 left-0 bottom-0 w-2 bg-[#00236f]" />
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-200 shrink-0 shadow-inner">
@@ -243,7 +239,7 @@ export const HistoryExamPage: React.FC = () => {
                   </div>
                   <div className="flex flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold uppercase tracking-wider">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#dce9ff] text-[#00236f] font-bold uppercase tracking-wider">
                         Sinh viên chính quy
                       </span>
                       <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
@@ -255,14 +251,14 @@ export const HistoryExamPage: React.FC = () => {
                     </h1>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
                       <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px] text-blue-600">
+                        <span className="material-symbols-outlined text-[16px] text-[#00236f]">
                           badge
                         </span>
                         MSSV: <strong className="text-slate-800">SV2024-8841</strong>
                       </span>
                       <span className="hidden sm:inline text-slate-300">•</span>
                       <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px] text-blue-600">
+                        <span className="material-symbols-outlined text-[16px] text-[#00236f]">
                           domain
                         </span>
                         Khoa Khoa Học Máy Tính &amp; Kỹ Thuật Thông Tin
@@ -273,168 +269,17 @@ export const HistoryExamPage: React.FC = () => {
 
                 {/* Academic Seal Badge */}
                 <div className="flex items-center gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200 self-start lg:self-center">
-                  <div className="w-11 h-11 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <div className="w-11 h-11 rounded-lg bg-[#00236f] text-white flex items-center justify-center shrink-0 shadow-sm">
                     <span className="material-symbols-outlined text-[26px]">verified</span>
                   </div>
                   <div className="flex flex-col text-xs">
                     <span className="text-slate-500 uppercase font-semibold">
                       Hội đồng Khảo thí
                     </span>
-                    <span className="font-bold text-blue-900 text-sm">
+                    <span className="font-bold text-[#00236f] text-sm">
                       Xác nhận Kết quả kỳ thi
                     </span>
                     <span className="text-slate-500">Cập nhật lúc 08:30 • 14/10/2024</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* KPI Statistics Bento Overview */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Stat Card 1: GPA */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">
-                      GPA Khảo thí bài viết
-                    </span>
-                    <span className="text-xs text-slate-400">Thang điểm 10.0</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[22px]">auto_stories</span>
-                  </div>
-                </div>
-                <div className="flex items-end justify-between mt-4">
-                  <div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-blue-900">8.6</span>
-                      <span className="text-base text-slate-500 font-medium">/10</span>
-                    </div>
-                    <span className="text-xs text-emerald-700 font-semibold flex items-center gap-0.5 mt-0.5">
-                      <span className="material-symbols-outlined text-[16px]">trending_up</span>
-                      Top 5% toàn niên khóa
-                    </span>
-                  </div>
-                  {/* Radial SVG progress */}
-                  <div className="relative w-12 h-12 flex items-center justify-center">
-                    <svg className="w-12 h-12 -rotate-90" viewBox="0 0 36 36">
-                      <circle
-                        className="text-slate-100"
-                        cx={18}
-                        cy={18}
-                        fill="none"
-                        r={14}
-                        stroke="currentColor"
-                        strokeWidth={3}
-                      />
-                      <circle
-                        className="text-blue-600"
-                        cx={18}
-                        cy={18}
-                        fill="none"
-                        r={14}
-                        stroke="currentColor"
-                        strokeDasharray="88, 100"
-                        strokeLinecap="round"
-                        strokeWidth={3}
-                      />
-                    </svg>
-                    <span className="absolute text-[11px] font-bold text-blue-700">86%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stat Card 2: Completed Exams */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">
-                      Bài thi hoàn thành
-                    </span>
-                    <span className="text-xs text-slate-400">Kỳ đánh giá chính thức</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-blue-700 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[22px]">
-                      assignment_turned_in
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-end justify-between mt-4">
-                  <div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-blue-900">08</span>
-                      <span className="text-xs text-slate-500 font-medium">học phần</span>
-                    </div>
-                    <span className="text-xs text-slate-500">Đã tích lũy đủ 24 tín chỉ</span>
-                  </div>
-                  <div className="w-16 h-8 flex items-end gap-1">
-                    <span className="w-2.5 bg-blue-200 h-4 rounded-t-sm" />
-                    <span className="w-2.5 bg-blue-300 h-6 rounded-t-sm" />
-                    <span className="w-2.5 bg-blue-400 h-5 rounded-t-sm" />
-                    <span className="w-2.5 bg-blue-600 h-8 rounded-t-sm" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Stat Card 3: New Feedback */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">
-                      Nhận xét mới
-                    </span>
-                    <span className="text-xs text-slate-400">Cần xem phản hồi</span>
-                  </div>
-                  <div className="relative w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[22px]">rate_review</span>
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
-                  </div>
-                </div>
-                <div className="flex items-end justify-between mt-4">
-                  <div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-blue-900">02</span>
-                      <span className="text-xs text-slate-500 font-medium">bài thi</span>
-                    </div>
-                    <span className="text-xs text-blue-700 font-semibold">
-                      TS. Lê Quang Mai &amp; ThS. Lan
-                    </span>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-blue-600">
-                    <span className="material-symbols-outlined text-[18px]">
-                      chat_bubble
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stat Card 4: AI Proctoring */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">
-                      Tuân thủ quy chế thi
-                    </span>
-                    <span className="text-xs text-slate-400">AI Proctoring &amp; Giám sát</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[22px]">security</span>
-                  </div>
-                </div>
-                <div className="flex items-end justify-between mt-4">
-                  <div>
-                    <span className="text-3xl font-bold text-slate-900 block leading-tight">
-                      100%
-                    </span>
-                    <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]">
-                        check_circle
-                      </span>
-                      Không vi phạm liêm chính
-                    </span>
-                  </div>
-                  <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-blue-600">
-                    <span className="material-symbols-outlined text-[20px]">task_alt</span>
                   </div>
                 </div>
               </div>
@@ -480,13 +325,13 @@ export const HistoryExamPage: React.FC = () => {
               {/* Counter & View Mode Toggle */}
               <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
                 <span className="text-xs text-slate-500">
-                  Hiển thị <strong className="text-blue-700 font-bold">{filteredExams.length}</strong> bài thi tự luận
+                  Hiển thị <strong className="text-[#00236f] font-bold">{filteredExams.length}</strong> bài thi tự luận
                 </span>
                 <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
                   <button
                     onClick={() => setViewMode('list')}
                     className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${viewMode === 'list'
-                      ? 'bg-white text-blue-700 shadow-sm'
+                      ? 'bg-white text-[#00236f] shadow-sm'
                       : 'text-slate-500 hover:text-slate-800'
                       }`}
                     title="Dạng danh sách"
@@ -497,7 +342,7 @@ export const HistoryExamPage: React.FC = () => {
                   <button
                     onClick={() => setViewMode('grid')}
                     className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${viewMode === 'grid'
-                      ? 'bg-white text-blue-700 shadow-sm'
+                      ? 'bg-white text-[#00236f] shadow-sm'
                       : 'text-slate-500 hover:text-slate-800'
                       }`}
                     title="Dạng lưới"
@@ -539,10 +384,10 @@ export const HistoryExamPage: React.FC = () => {
                         {/* Tags & Subject Title */}
                         <div className="flex flex-col gap-1.5">
                           <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="px-2.5 py-0.5 rounded-md bg-blue-600 text-white font-bold">
+                            <span className="px-2.5 py-0.5 rounded-md bg-[#00236f] text-white font-bold">
                               {item.code}
                             </span>
-                            <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-blue-900 font-semibold">
+                            <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-[#00236f] font-semibold">
                               {item.typeText} ({item.durationText})
                             </span>
                             <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-800 flex items-center gap-1 font-medium">
@@ -585,7 +430,7 @@ export const HistoryExamPage: React.FC = () => {
 
                         {/* Feedback Box */}
                         <div className="relative bg-slate-50 rounded-xl p-4 border border-slate-200/80">
-                          <div className="flex items-center gap-1.5 text-blue-900 mb-1.5 text-xs font-bold uppercase tracking-wider">
+                          <div className="flex items-center gap-1.5 text-[#00236f] mb-1.5 text-xs font-bold uppercase tracking-wider">
                             <span className="material-symbols-outlined text-[18px]">
                               format_quote
                             </span>
@@ -595,13 +440,6 @@ export const HistoryExamPage: React.FC = () => {
                             "{item.feedbackText}"
                           </p>
                           <div className="mt-3 pt-2 border-t border-slate-200/60 flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-500 text-xs">
-                            <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                              <span className="material-symbols-outlined text-[15px]">
-                                verified
-                              </span>
-                              Đã kiểm chứng tính liêm chính (Tương đồng {item.similarityText})
-                            </span>
-                            <span>•</span>
                             <span>Nhận xét lúc: {item.feedbackTime}</span>
                           </div>
                         </div>
@@ -616,7 +454,7 @@ export const HistoryExamPage: React.FC = () => {
                               Điểm tổng kết
                             </span>
                             <div className="flex items-baseline gap-1 mt-0.5">
-                              <span className="text-3xl font-bold text-blue-900">
+                              <span className="text-3xl font-bold text-[#00236f]">
                                 {item.finalScore.toFixed(1)}
                               </span>
                               <span className="text-base text-slate-400 font-medium">
@@ -624,7 +462,7 @@ export const HistoryExamPage: React.FC = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-blue-600 text-white shadow-sm">
+                          <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-[#00236f] text-white shadow-sm">
                             <span className="text-xl font-bold leading-none">
                               {item.letterGrade}
                             </span>
@@ -640,11 +478,11 @@ export const HistoryExamPage: React.FC = () => {
                             <div key={idx} className="space-y-1">
                               <div className="flex justify-between">
                                 <span className="text-slate-500">{m.label}</span>
-                                <span className="text-blue-700 font-bold">{m.score}</span>
+                                <span className="text-[#00236f] font-bold">{m.score}</span>
                               </div>
                               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                                 <div
-                                  className="bg-blue-600 h-full rounded-full"
+                                  className="bg-[#00236f] h-full rounded-full"
                                   style={{ width: `${m.percentage}%` }}
                                 />
                               </div>
@@ -659,7 +497,7 @@ export const HistoryExamPage: React.FC = () => {
                               alert(`Đang tải chi tiết bài làm & biên bản chấm điểm môn ${item.code}...`);
                               router.push(`/pages/student/exam/doing/details?code=${item.code}`);
                             }}
-                            className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all shadow-sm"
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-[#00236f] hover:bg-[#1e3a8a] text-white font-semibold transition-all shadow-sm"
                             type="button"
                           >
                             <span className="material-symbols-outlined text-[18px]">
@@ -673,31 +511,6 @@ export const HistoryExamPage: React.FC = () => {
                   </div>
                 ))
               )}
-            </div>
-
-            {/* Quy định Phúc khảo Footer Banner */}
-            <div className="w-full bg-white rounded-2xl p-5 border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="material-symbols-outlined text-[24px]">info</span>
-                </div>
-                <div className="flex flex-col gap-0.5 text-xs">
-                  <span className="text-sm font-bold text-slate-900">
-                    Quy định về Khiếu nại &amp; Phúc khảo điểm thi tự luận trực tuyến
-                  </span>
-                  <p className="text-slate-600 leading-relaxed">
-                    Thời hạn nộp đơn phúc khảo trực tuyến là trong vòng{' '}
-                    <strong>07 ngày làm việc</strong> kể từ ngày công bố điểm thi. Mỗi ca thi chỉ được gửi tối đa một yêu cầu phúc khảo chính thức kèm theo lệ phí quy định.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => alert('Đang tải văn bản Quy chế khảo thí 2024-2025 PDF...')}
-                className="shrink-0 px-4 py-2 rounded-xl bg-slate-100 text-blue-900 hover:bg-slate-200 font-semibold text-xs border border-slate-200 transition-colors"
-                type="button"
-              >
-                Quy chế khảo thí PDF
-              </button>
             </div>
           </div>
         </div>
@@ -735,13 +548,13 @@ export const HistoryExamPage: React.FC = () => {
             <form onSubmit={handleSubmitReview} className="p-5 flex flex-col gap-4 text-xs">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-1">
                 <span className="text-slate-400">Học phần đề nghị:</span>
-                <span className="font-bold text-blue-900 text-sm">
+                <span className="font-bold text-[#00236f] text-sm">
                   {selectedReviewExam.name}
                 </span>
                 <div className="flex items-center justify-between text-slate-600 pt-2 mt-1 border-t border-slate-200">
                   <span>
                     Điểm hiện tại:{' '}
-                    <strong className="text-blue-700 font-bold">
+                    <strong className="text-[#00236f] font-bold">
                       {selectedReviewExam.finalScore.toFixed(1)}/10
                     </strong>
                   </span>
@@ -770,8 +583,8 @@ export const HistoryExamPage: React.FC = () => {
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-2 text-blue-900">
-                <span className="material-symbols-outlined text-[18px] text-blue-600 shrink-0 mt-0.5">
+              <div className="p-3 rounded-xl bg-[#eff4ff] border border-[#dce1ff] flex items-start gap-2 text-[#00236f]">
+                <span className="material-symbols-outlined text-[18px] text-[#00236f] shrink-0 mt-0.5">
                   verified_user
                 </span>
                 <span>
@@ -789,7 +602,7 @@ export const HistoryExamPage: React.FC = () => {
                   Hủy bỏ
                 </button>
                 <button
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-[#00236f] hover:bg-[#1e3a8a] text-white font-bold transition-all shadow-sm flex items-center gap-1.5"
                   type="submit"
                 >
                   <span className="material-symbols-outlined text-[16px]">send</span>
@@ -800,34 +613,6 @@ export const HistoryExamPage: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* 4. FOOTER HỆ THỐNG */}
-      <footer className="w-full bg-white border-t border-slate-200 py-6 mt-auto">
-        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left text-xs">
-          <div className="flex flex-col">
-            <span className="font-bold text-blue-900 text-sm">
-              HỘI ĐỒNG KHẢO THÍ VÀ ĐẢM BẢO CHẤT LƯỢNG GIÁO DỤC
-            </span>
-            <span className="text-slate-500 mt-0.5">
-              Cổng thông tin thi trực tuyến dành cho sinh viên chính quy • Bản quyền © 2026
-            </span>
-          </div>
-          <div className="flex items-center gap-6 text-slate-500">
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-blue-600">
-                support_agent
-              </span>
-              <span>Đường dây nóng: 1900 6886</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-blue-600">
-                verified_user
-              </span>
-              <span>Bảo mật AES-256</span>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

@@ -8,7 +8,7 @@ export default function StudentLayout({
     return (
         <div className="min-h-screen flex flex-col bg-slate-50">
             {/* Header riêng của Sinh viên */}
-            <StudentHeader isLoggedIn={true} />
+            <StudentHeader />
 
             {/* Nội dung chính lùi xuống 16 (64px) để tránh bị Header che */}
             <div className="flex-1 pt-16">

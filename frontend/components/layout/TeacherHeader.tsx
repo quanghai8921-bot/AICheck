@@ -41,15 +41,10 @@ export default function TeacherHeader() {
 
                 {/* Right Info & Tools */}
                 <div className="flex items-center gap-6">
-                    {/* Status Indicators */}
-                    <div className="hidden xl:flex items-center gap-1 px-3 py-1 rounded-full bg-[#eff4ff] text-[#00311f] text-xs font-semibold">
-                        <span className="w-2 h-2 rounded-full bg-[#4edea3] animate-pulse"></span>
-                        <span>Đường truyền ổn định (12ms)</span>
-                    </div>
 
                     <div className="hidden lg:flex items-center gap-1 px-3 py-1 rounded-full bg-[#eff4ff] text-[#515f74] text-xs font-semibold">
                         <span className="material-symbols-outlined text-[16px]">schedule</span>
-                        <span>UTC+7 09:42:15 NTP</span>
+                        <span>09:42:15</span>
                     </div>
 
                     {/* Notifications */}
@@ -69,11 +64,10 @@ export default function TeacherHeader() {
                         <button
                             type="button"
                             onClick={() => setIsDropdownOpen((prev) => !prev)}
-                            className={`flex items-center gap-2 pl-2 pr-2 py-1 border-l border-[#c5c5d3] transition-all text-left focus:outline-none cursor-pointer rounded-xl ${
-                                pathname?.startsWith('/pages/teacher/dashboard/profile')
+                            className={`flex items-center gap-2 pl-2 pr-2 py-1 border-l border-[#c5c5d3] transition-all text-left focus:outline-none cursor-pointer rounded-xl ${pathname?.startsWith('/pages/teacher/dashboard/profile')
                                     ? 'bg-[#eff4ff] text-[#00236f] font-semibold'
                                     : 'hover:opacity-90'
-                            }`}
+                                }`}
                         >
                             <div className="w-8 h-8 rounded-full bg-[#00236f] flex items-center justify-center flex-shrink-0 shadow-xs">
                                 <span className="material-symbols-outlined text-white text-[18px]">person</span>
@@ -100,30 +94,15 @@ export default function TeacherHeader() {
                                     <span className="text-xs text-[#515f74]">mai.lequang@hust.edu.vn</span>
                                 </div>
 
-                                <div className="py-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsDropdownOpen(false);
-                                            router.push('/pages/teacher/dashboard/profile');
-                                        }}
-                                        className={`w-full px-4 py-2.5 text-left text-xs flex items-center gap-2.5 transition-colors cursor-pointer ${
-                                            pathname?.startsWith('/pages/teacher/dashboard/profile')
-                                                ? 'bg-[#dce9ff] text-[#00236f] font-bold shadow-xs'
-                                                : 'text-slate-700 hover:bg-[#eff4ff] hover:text-[#00236f] font-semibold'
-                                        }`}
-                                    >
-                                        <span className="material-symbols-outlined text-[18px] text-[#00236f]">badge</span>
-                                        <span>Thông tin cá nhân &amp; Bảo mật</span>
-                                    </button>
-                                </div>
-
                                 <div className="border-t border-slate-100 pt-1">
                                     <button
                                         type="button"
                                         onClick={() => {
                                             setIsDropdownOpen(false);
-                                            router.push('/pages/teacher/auth');
+                                            if (typeof window !== 'undefined') {
+                                                sessionStorage.clear();
+                                            }
+                                            router.push('/pages/home');
                                         }}
                                         className="w-full px-4 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                     >
@@ -137,10 +116,13 @@ export default function TeacherHeader() {
 
                     {/* Logout Button */}
                     <button
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#eff4ff] hover:bg-[#ffdad6] text-[#444651] hover:text-[#ba1a1a] transition-all text-xs font-semibold"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#eff4ff] hover:bg-[#ffdad6] text-[#444651] hover:text-[#ba1a1a] transition-all text-xs font-semibold cursor-pointer"
                         title="Đăng xuất"
                         onClick={() => {
-                            router.push('/pages/teacher/auth');
+                            if (typeof window !== 'undefined') {
+                                sessionStorage.clear();
+                            }
+                            router.push('/pages/home');
                         }}
                     >
                         <span className="material-symbols-outlined text-[18px]">logout</span>

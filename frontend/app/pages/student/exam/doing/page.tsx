@@ -2,104 +2,132 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Cấu trúc dữ liệu cho các câu hỏi
-interface Question {
-  id: number;
+// Cấu trúc dữ liệu cho đề bài duy nhất
+interface ExamTopic {
   title: string;
   type: string;
   subtitle: string;
   points: number;
   targetWords: string;
-  status: 'DONE' | 'DOING' | 'TODO';
   prompt: string;
   rubrics: { label: string; score: string }[];
 }
 
-const QUESTIONS: Question[] = [
-  {
-    id: 1,
-    title: 'Câu 1: Nghị luận Xã hội',
-    type: 'Nghị Luận Xã Hội',
-    subtitle: 'Trách nhiệm của công dân số',
-    points: 2.0,
-    targetWords: '200 từ',
-    status: 'TODO',
-    prompt: 'Trình bày suy nghĩ ngắn gọn (khoảng 200 từ) về trách nhiệm bảo vệ thông tin cá nhân và ứng xử văn minh của thanh niên trên môi trường mạng xã hội hiện nay.',
-    rubrics: [
-      { label: '1. Bố cục & Cấu trúc', score: '0.5đ' },
-      { label: '2. Luận điểm & Dẫn chứng', score: '1.0đ' },
-      { label: '3. Chính tả & Diễn đạt', score: '0.5đ' },
-    ],
-  },
-  {
-    id: 2,
-    title: 'Câu 2: Nghị luận Văn học',
-    type: 'Nghị Luận Văn Học',
-    subtitle: 'Bình luận tư tưởng tác phẩm',
-    points: 3.0,
-    targetWords: '500 - 600 từ',
-    status: 'DOING',
-    prompt: 'Trình bày suy nghĩ của anh/chị (khoảng 500 – 600 từ) về vai trò của Trí tuệ nhân tạo (AI) trong việc hỗ trợ phương pháp tự học và tư duy phản biện của học sinh, sinh viên trong kỷ nguyên số.',
-    rubrics: [
-      { label: '1. Bố cục & Cấu trúc', score: '0.5đ' },
-      { label: '2. Luận điểm & Dẫn chứng', score: '1.5đ' },
-      { label: '3. Tư duy phản biện', score: '0.5đ' },
-      { label: '4. Chính tả & Diễn đạt', score: '0.5đ' },
-    ],
-  },
-  {
-    id: 3,
-    title: 'Câu 3: Tổng hợp & Phân tích',
-    type: 'Tổng hợp & Phân tích',
-    subtitle: 'Đánh giá số liệu và góc nhìn đa chiều',
-    points: 5.0,
-    targetWords: '600 từ',
-    status: 'TODO',
-    prompt: 'Phân tích bảng số liệu về xu hướng lao động trong ngành công nghệ thông tin và đề xuất giải pháp phát triển kỹ năng thích ứng cho sinh viên đại học.',
-    rubrics: [
-      { label: '1. Phân tích số liệu', score: '2.0đ' },
-      { label: '2. Giải pháp thực tiễn', score: '2.0đ' },
-      { label: '3. Khả năng tổng hợp', score: '1.0đ' },
-    ],
-  },
-];
+const EXAM_TOPIC: ExamTopic = {
+  title: 'Nghị luận & Kỹ năng Viết Học thuật',
+  type: 'Tự luận Học thuật',
+  subtitle: 'Tư duy phản biện và năng lực lập luận',
+  points: 10.0,
+  targetWords: '500 - 600 từ',
+  prompt:
+    'Trình bày suy nghĩ của anh/chị (khoảng 500 – 600 từ) về vai trò của Trí tuệ nhân tạo (AI) trong việc hỗ trợ phương pháp tự học và phát triển tư duy phản biện của học sinh, sinh viên trong kỷ nguyên số.',
+  rubrics: [
+    { label: 'Bố cục & Cấu trúc lập luận', score: '3.0đ' },
+    { label: 'Luận điểm & Dẫn chứng thực tiễn', score: '4.0đ' },
+    { label: 'Tư duy phản biện & Đề xuất giải pháp', score: '2.0đ' },
+    { label: 'Chính tả, Ngữ pháp & Diễn đạt', score: '1.0đ' },
+  ],
+};
 
 export const DoingPage: React.FC = () => {
   const router = useRouter();
 
   // --- States ---
-  const [activeQuestionId, setActiveQuestionId] = useState<number>(1);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState<boolean>(false);
-  const [isProctorModalOpen, setIsProctorModalOpen] = useState<boolean>(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
-  // Quản lý nội dung bài làm từng câu (Trống để học sinh gõ từ đầu)
-  const [answers, setAnswers] = useState<Record<number, string>>({
-    1: '',
-    2: '',
-    3: '',
+  // Thông tin sinh viên & ca thi thực tế
+  const [studentInfo, setStudentInfo] = useState({
+    name: 'Thí sinh',
+    studentCode: '---',
+    shortName: 'TS',
   });
+  const [examMeta, setExamMeta] = useState({
+    title: 'Kỳ thi đánh giá năng lực viết học thuật',
+    courseCode: 'AICHECK',
+  });
+
+  // Nội dung bài làm
+  const [answer, setAnswer] = useState<string>('');
 
   // Đồng hồ đếm ngược (84 phút 15 giây)
   const [timeLeft, setTimeLeft] = useState<number>(84 * 60 + 15);
   const editorRef = useRef<HTMLDivElement>(null);
 
+  // --- Helper giải mã JWT Token có hỗ trợ Unicode UTF-8 (Tiếng Việt) ---
+  const decodeJwtPayload = (token: string) => {
+    try {
+      const base64Url = token.split('.')[1];
+      if (!base64Url) return null;
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const binaryStr = atob(base64);
+      const bytes = Uint8Array.from(binaryStr, (c) => c.charCodeAt(0));
+      return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+    } catch (e) {
+      console.error('Lỗi giải mã token UTF-8:', e);
+      return null;
+    }
+  };
+
+  // --- Helper trích xuất chữ cái đầu ---
+  const getInitials = (fullName: string) => {
+    if (!fullName) return 'TS';
+    const words = fullName.trim().split(/\s+/);
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  };
+
   // --- Effects ---
-  // 1. Đồng hồ đếm ngược
+  // 1. Đọc dữ liệu thực tế từ Access Token & Session
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = sessionStorage.getItem('accessToken');
+      const savedCode = sessionStorage.getItem('studentCode') || '';
+      const savedTitle = sessionStorage.getItem('currentExamTitle');
+      const savedCourse = sessionStorage.getItem('currentCourseCode');
+
+      if (savedTitle || savedCourse) {
+        setExamMeta({
+          title: savedTitle || 'Kỳ thi đánh giá năng lực viết học thuật',
+          courseCode: savedCourse || 'AICHECK',
+        });
+      }
+
+      if (token) {
+        const payload = decodeJwtPayload(token);
+        if (payload) {
+          const name = payload.name || (savedCode ? `Thí sinh ${savedCode}` : 'Thí sinh');
+          const code = savedCode || payload.preferred_username || '---';
+          setStudentInfo({
+            name,
+            studentCode: code,
+            shortName: getInitials(name),
+          });
+        } else if (savedCode) {
+          setStudentInfo({
+            name: `Thí sinh ${savedCode}`,
+            studentCode: savedCode,
+            shortName: savedCode.slice(-2).toUpperCase(),
+          });
+        }
+      } else if (savedCode) {
+        setStudentInfo({
+          name: `Thí sinh ${savedCode}`,
+          studentCode: savedCode,
+          shortName: savedCode.slice(-2).toUpperCase(),
+        });
+      }
+    }
+  }, []);
+
+  // 2. Đồng hồ đếm ngược
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // 2. Đồng bộ nội dung trong editor khi chuyển câu hỏi
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.innerText = answers[activeQuestionId] || '';
-    }
-  }, [activeQuestionId]);
 
   // Format thời gian đếm ngược
   const formatTime = (seconds: number) => {
@@ -111,29 +139,16 @@ export const DoingPage: React.FC = () => {
       .padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Tính toán số từ & số đoạn của câu hiện tại
-  const currentText = answers[activeQuestionId] || '';
-  const wordCount = currentText.trim() ? currentText.trim().split(/\s+/).length : 0;
-  const paragraphCount = currentText
+  // Tính toán số từ & số đoạn
+  const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+  const paragraphCount = answer
     .split('\n')
     .filter((p) => p.trim().length > 0).length;
-
-  // Tính tổng số từ toàn bài thi
-  const totalWordCount = Object.values(answers).reduce((acc, text) => {
-    return acc + (text.trim() ? text.trim().split(/\s+/).length : 0);
-  }, 0);
-
-  // Lấy dữ liệu câu hỏi hiện tại
-  const currentQuestion =
-    QUESTIONS.find((q) => q.id === activeQuestionId) || QUESTIONS[0];
 
   // --- Handlers ---
   const handleEditorInput = () => {
     if (editorRef.current) {
-      setAnswers((prev) => ({
-        ...prev,
-        [activeQuestionId]: editorRef.current?.innerText || '',
-      }));
+      setAnswer(editorRef.current.innerText || '');
     }
   };
 
@@ -165,13 +180,13 @@ export const DoingPage: React.FC = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-200">
         <div className="h-16 w-full px-4 md:px-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-[#00236f] flex items-center justify-center text-white shadow-sm">
               <span className="material-symbols-outlined text-[22px]">school</span>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-sm md:text-base text-blue-900 tracking-tight font-bold uppercase">
-                  Kỳ thi đánh giá năng lực viết học thuật
+                <span className="text-sm md:text-base text-[#00236f] tracking-tight font-bold uppercase">
+                  {examMeta.title}
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -179,21 +194,21 @@ export const DoingPage: React.FC = () => {
                 </span>
               </div>
               <span className="text-xs text-slate-500 hidden sm:inline">
-                HỌC KỲ II • Khóa thi chuẩn hóa năng lực học thuật trực tuyến
+                MÃ HỌC PHẦN: {examMeta.courseCode} • Khóa thi chuẩn hóa năng lực trực tuyến
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-4 md:gap-6 shrink-0">
             <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-              <span className="material-symbols-outlined text-blue-600 text-[20px]">
+              <span className="material-symbols-outlined text-[#00236f] text-[20px]">
                 timer
               </span>
               <div className="flex flex-col leading-none">
                 <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                   Thời gian còn lại
                 </span>
-                <span className="font-mono text-base font-bold text-blue-700">
+                <span className="font-mono text-base font-bold text-[#00236f]">
                   {formatTime(timeLeft)}
                 </span>
               </div>
@@ -209,7 +224,7 @@ export const DoingPage: React.FC = () => {
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => setIsHelpModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-xs font-semibold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-xs font-semibold cursor-pointer"
               type="button"
             >
               <span className="material-symbols-outlined text-[18px]">help</span>
@@ -218,69 +233,29 @@ export const DoingPage: React.FC = () => {
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
               <div className="text-right hidden sm:block">
                 <div className="text-xs font-semibold text-slate-800 leading-tight">
-                  Nguyễn Văn Minh Triết
+                  {studentInfo.name}
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  MSSV: SV2024-8841 • K22-CNTT01
+                  MSSV: {studentInfo.studentCode} • Thí sinh dự thi
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-[18px]">person</span>
+              <div className="w-8 h-8 rounded-full bg-[#00236f] flex items-center justify-center text-white text-xs font-bold shadow-xs">
+                {studentInfo.shortName}
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* 2. ASIDE SIDEBAR CẤU TRÚC ĐỀ THI */}
-      <aside className="fixed left-0 bottom-0 w-72 bg-white z-40 flex flex-col p-4 border-r border-slate-200 overflow-y-auto top-16 hidden md:flex">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-          <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">
-            Cấu trúc đề thi
-          </span>
-          <span className="text-xs text-slate-500 font-medium">3 Câu hỏi</span>
-        </div>
-        <nav className="space-y-2 flex-1">
-          {QUESTIONS.map((q) => {
-            const isActive = q.id === activeQuestionId;
-            const hasAnswer = (answers[q.id] || '').trim().length > 0;
-            return (
-              <button
-                key={q.id}
-                onClick={() => setActiveQuestionId(q.id)}
-                className={`w-full text-left flex flex-col p-3 rounded-xl transition-all border ${isActive
-                  ? 'bg-blue-50 border-blue-200 text-blue-900 shadow-sm'
-                  : 'bg-white border-transparent text-slate-700 hover:bg-slate-50 hover:border-slate-200'
-                  }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold">{q.title}</span>
-                  {hasAnswer ? (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-semibold">
-                      ĐÃ LÀM
-                    </span>
-                  ) : (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 font-semibold">
-                      CHƯA LÀM
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-slate-500 truncate">{q.subtitle}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
-
-      {/* 3. KHU VỰC NỘI DUNG CHÍNH */}
-      <div className="md:pl-72">
-        <main className="relative min-h-screen flex flex-col">
+      {/* 2. KHU VỰC NỘI DUNG CHÍNH (TOÀN MÀN HÌNH KHÔNG CẦN SIDEBAR CHUYỂN CÂU) */}
+      <div className="pt-16">
+        <main className="relative min-h-[calc(100vh-64px)] flex flex-col">
           {/* Sub-header */}
           <section className="w-full px-4 md:px-6 py-3 bg-white border-b border-slate-200 shadow-sm">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-3">
-                  <span className="p-2 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <span className="p-2 rounded-xl bg-[#dce9ff] text-[#00236f] flex items-center justify-center">
                     <span className="material-symbols-outlined text-[20px]">
                       menu_book
                     </span>
@@ -299,34 +274,16 @@ export const DoingPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between lg:justify-end gap-4 md:gap-6">
-                <button
-                  onClick={() => setIsProctorModalOpen(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition-all text-xs font-semibold border border-rose-200"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    support_agent
-                  </span>
-                  <span>Cần hỗ trợ</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="w-full pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-slate-500 font-bold uppercase tracking-wider">
-                Đang xem: Câu {activeQuestionId}
-              </div>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 text-slate-600">
-                  <span className="material-symbols-outlined text-[16px]">edit_note</span>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                  <span className="material-symbols-outlined text-[16px] text-[#00236f]">edit_note</span>
                   <span>
-                    Tổng từ toàn bài: <strong className="text-slate-900">{totalWordCount} từ</strong>
+                    Số từ hiện tại: <strong className="text-slate-900 font-bold">{wordCount} từ</strong>
                   </span>
                 </div>
                 <button
                   onClick={() => setIsSubmitModalOpen(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors shadow-sm"
+                  className="flex items-center gap-1 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors shadow-sm text-xs cursor-pointer"
                   type="button"
                 >
                   <span className="material-symbols-outlined text-[18px]">task_alt</span>
@@ -339,80 +296,68 @@ export const DoingPage: React.FC = () => {
           {/* WORKSPACE CHÍNH */}
           <div className="p-4 md:p-6 flex-1 flex flex-col">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
-              {/* CỘT TRÁI: ĐỀ BÀI (5/12) */}
-              <aside className="lg:col-span-5 flex flex-col gap-4 lg:sticky top-20 max-h-[calc(100vh-120px)]">
-                <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2">
-                  {QUESTIONS.map((q) => {
-                    const isActive = q.id === activeQuestionId;
-                    return (
-                      <button
-                        key={q.id}
-                        onClick={() => setActiveQuestionId(q.id)}
-                        className={`flex-1 py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-0.5 text-center border ${isActive
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                          : 'bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100'
-                          }`}
-                        type="button"
-                      >
-                        <div className="flex items-center gap-1 text-xs font-bold">
-                          <span>Câu {q.id}</span>
-                        </div>
-                        <span
-                          className={`text-[10px] truncate max-w-full ${isActive ? 'text-blue-100' : 'text-slate-500'
-                            }`}
-                        >
-                          {q.points}đ • {q.targetWords}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex-1 overflow-y-auto space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              {/* CỘT TRÁI: NỘI DUNG ĐỀ BÀI (5/12) */}
+              <aside className="lg:col-span-5 flex flex-col gap-4 lg:sticky top-20 max-h-[calc(100vh-140px)]">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex-1 overflow-y-auto space-y-5">
+                  {/* Tiêu đề & Thông số đề bài (Không đánh số thứ tự câu hỏi) */}
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-md bg-blue-600 text-white text-xs font-bold uppercase">
-                        CÂU SỐ {currentQuestion.id}
+                      <span className="px-3 py-1 rounded-md bg-[#00236f] text-white text-xs font-bold uppercase tracking-wider">
+                        ĐỀ BÀI
                       </span>
-                      <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">
-                        {currentQuestion.type}
+                      <span className="text-xs font-bold text-[#00236f] uppercase tracking-wider">
+                        {EXAM_TOPIC.type}
                       </span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
-                      {currentQuestion.points.toFixed(1)} ĐIỂM
+                    <span className="px-3 py-1 rounded-full bg-[#eff4ff] text-[#00236f] text-xs font-bold border border-[#dce1ff]">
+                      {EXAM_TOPIC.points.toFixed(1)} ĐIỂM
                     </span>
                   </div>
 
-                  <div className="space-y-1">
-                    <span className="text-xs text-slate-400 uppercase tracking-wider font-bold">
-                      Yêu cầu trọng tâm
-                    </span>
-                    <h2 className="text-sm md:text-base text-slate-800 font-semibold leading-relaxed">
-                      {currentQuestion.prompt}
-                    </h2>
-                  </div>
-
-                  {/* Rubric Chấm Điểm */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                  {/* Nội dung đề bài */}
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">
-                        Tiêu chí chấm điểm chi tiết (Rubric)
+                      <span className="text-xs text-slate-400 uppercase tracking-wider font-bold">
+                        Yêu cầu bài thi
                       </span>
-                      <span className="text-xs text-blue-700 font-bold">
-                        Tổng: {currentQuestion.points.toFixed(1)}đ
+                      <span className="text-xs font-semibold text-slate-500">
+                        Độ dài khuyến nghị: <strong className="text-slate-800">{EXAM_TOPIC.targetWords}</strong>
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      {currentQuestion.rubrics.map((r, idx) => (
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900">
+                      <p className="text-sm md:text-base font-semibold leading-relaxed">
+                        {EXAM_TOPIC.prompt}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tiêu chí chấm điểm (Rubrics) */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <span className="text-xs text-slate-400 uppercase tracking-wider font-bold block">
+                      Tiêu chí đánh giá bài viết (Rubric)
+                    </span>
+                    <div className="space-y-1.5">
+                      {EXAM_TOPIC.rubrics.map((r, idx) => (
                         <div
                           key={idx}
-                          className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between"
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-xs text-slate-700 border border-slate-100"
                         >
-                          <span className="text-slate-700">{r.label}</span>
-                          <span className="font-bold text-blue-700">{r.score}</span>
+                          <span className="font-medium">{r.label}</span>
+                          <span className="font-bold text-[#00236f]">{r.score}</span>
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Lưu ý bài thi */}
+                  <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-900 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-[#00236f]">
+                      <span className="material-symbols-outlined text-[16px]">info</span>
+                      <span>Lưu ý của hội đồng coi thi</span>
+                    </div>
+                    <p className="text-blue-800 leading-relaxed text-[11px]">
+                      Hệ thống tự động lưu trữ bài viết liên tục. Hãy kiểm tra kỹ cấu trúc đoạn văn, chính tả và số lượng từ trước khi bấm nộp bài chính thức.
+                    </p>
                   </div>
                 </div>
               </aside>
@@ -488,19 +433,19 @@ export const DoingPage: React.FC = () => {
                     contentEditable
                     suppressContentEditableWarning
                     onInput={handleEditorInput}
-                    data-placeholder="Nhập nội dung bài làm của bạn tại đây..."
-                    className="w-full flex-1 outline-none text-slate-800 text-base leading-relaxed min-h-[300px] font-serif focus:ring-0 empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none"
+                    data-placeholder="Bắt đầu viết bài làm của bạn tại đây..."
+                    className="w-full flex-1 outline-none text-slate-800 text-base leading-relaxed min-h-[420px] font-serif focus:ring-0 empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none"
                   />
                 </div>
 
-                {/* Footer số từ & Nút nộp bài */}
-                <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                {/* Footer số từ & Nút nộp bài (Bỏ các nút chuyển câu) */}
+                <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-xl font-bold text-blue-700">
+                      <span className="font-mono text-xl font-bold text-[#00236f]">
                         {wordCount}
                       </span>
-                      <span className="text-slate-500 font-medium">từ</span>
+                      <span className="text-slate-500 font-medium">từ đã viết</span>
                     </div>
 
                     <div className="hidden sm:flex items-center gap-2 text-slate-500 border-l border-slate-200 pl-3">
@@ -508,58 +453,34 @@ export const DoingPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      disabled={activeQuestionId === 1}
-                      onClick={() => setActiveQuestionId((prev) => Math.max(1, prev - 1))}
-                      className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-40 text-slate-700 font-medium transition-colors flex items-center gap-1"
-                      type="button"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                      <span>Câu trước</span>
-                    </button>
-
-                    <button
-                      disabled={activeQuestionId === QUESTIONS.length}
-                      onClick={() =>
-                        setActiveQuestionId((prev) => Math.min(QUESTIONS.length, prev + 1))
-                      }
-                      className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-40 text-slate-700 font-medium transition-colors flex items-center gap-1"
-                      type="button"
-                    >
-                      <span>Câu tiếp</span>
-                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                    </button>
-
-                    <button
-                      onClick={() => setIsSubmitModalOpen(true)}
-                      className="px-4 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold transition-all shadow-sm flex items-center gap-1.5 ml-1"
-                      type="button"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">grading</span>
-                      <span>Xem lại &amp; Nộp bài</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setIsSubmitModalOpen(true)}
+                    className="px-5 py-2 rounded-xl bg-[#00236f] hover:bg-[#1a3889] text-white font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer active:scale-[0.99]"
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">grading</span>
+                    <span>Xem lại &amp; Nộp bài thi</span>
+                  </button>
                 </div>
               </section>
             </div>
           </div>
 
-          {/* 4. MODAL XÁC NHẬN NỘP BÀI THI */}
+          {/* 3. MODAL XÁC NHẬN NỘP BÀI THI */}
           {isSubmitModalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-150">
-                <div className="px-6 py-4 bg-blue-600 text-white flex items-center justify-between">
+                <div className="px-6 py-4 bg-[#00236f] text-white flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[24px]">fact_check</span>
                     <div>
                       <h3 className="text-base font-bold leading-tight">Xác nhận Nộp Bài Thi</h3>
-                      <p className="text-xs text-blue-100">Kỳ thi Đánh giá Năng lực Viết Học thuật</p>
+                      <p className="text-xs text-blue-100">{examMeta.title}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setIsSubmitModalOpen(false)}
-                    className="w-8 h-8 rounded-lg hover:bg-blue-700 text-white flex items-center justify-center transition-colors"
+                    className="w-8 h-8 rounded-lg hover:bg-blue-700 text-white flex items-center justify-center transition-colors cursor-pointer"
                     type="button"
                   >
                     <span className="material-symbols-outlined">close</span>
@@ -569,50 +490,36 @@ export const DoingPage: React.FC = () => {
                 <div className="p-6 space-y-4">
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                        MT
-                      </div>
                       <div>
-                        <p className="font-bold text-slate-800">Nguyễn Văn Minh Triết</p>
-                        <p className="text-slate-500">MSSV: SV2024-8841 • Lớp: K22-CNTT01</p>
+                        <p className="text-slate-500">MSSV: {studentInfo.studentCode} • Thí sinh dự thi</p>
                       </div>
                     </div>
-                    <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold">
-                      Đã định danh
-                    </span>
                   </div>
 
-                  <div className="space-y-1 text-xs">
-                    <span className="text-slate-500 font-bold uppercase tracking-wider block mb-1">
-                      Tình trạng bài làm chi tiết:
+                  <div className="space-y-2 text-xs">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider block">
+                      Tình trạng bài làm:
                     </span>
-                    {QUESTIONS.map((q) => {
-                      const words = (answers[q.id] || '').trim().split(/\s+/).filter(Boolean).length;
-                      return (
-                        <div
-                          key={q.id}
-                          className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`material-symbols-outlined text-[18px] ${words > 0 ? 'text-emerald-600' : 'text-slate-400'
-                                }`}
-                            >
-                              {words > 0 ? 'check_circle' : 'radio_button_unchecked'}
-                            </span>
-                            <span className="font-semibold text-slate-800">{q.title}</span>
-                          </div>
-                          <span className="text-slate-600">
-                            {words} từ{' '}
-                            {words > 0 ? (
-                              <strong className="text-emerald-600 ml-1">(Đã viết)</strong>
-                            ) : (
-                              <strong className="text-rose-500 ml-1">(Chưa viết)</strong>
-                            )}
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-slate-800">Bài thi tự luận:</span>
+                        <span className="font-bold text-[#00236f]">{wordCount} từ</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span>Trạng thái:</span>
+                        {wordCount > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-600 font-bold">
+                            <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                            Đã hoàn thành bài viết
                           </span>
-                        </div>
-                      );
-                    })}
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-rose-500 font-bold">
+                            <span className="material-symbols-outlined text-[16px]">error</span>
+                            Chưa nhập nội dung bài làm
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2 text-xs">
@@ -620,7 +527,7 @@ export const DoingPage: React.FC = () => {
                       warning
                     </span>
                     <div>
-                      Thời gian còn lại: <strong>{formatTime(timeLeft)}</strong>. Sau khi bấm “NỘP BÀI CHÍNH THỨC”, bài thi sẽ khóa hoàn toàn.
+                      Thời gian làm bài còn lại: <strong>{formatTime(timeLeft)}</strong>. Sau khi bấm “NỘP BÀI CHÍNH THỨC”, bài thi sẽ được khóa và gửi lên máy chủ hội đồng chấm thi.
                     </div>
                   </div>
                 </div>
@@ -628,14 +535,14 @@ export const DoingPage: React.FC = () => {
                 <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 text-xs">
                   <button
                     onClick={() => setIsSubmitModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold transition-colors"
+                    className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold transition-colors cursor-pointer"
                     type="button"
                   >
                     Quay lại kiểm tra
                   </button>
                   <button
                     onClick={handleFinalSubmit}
-                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md flex items-center gap-1.5"
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
                     type="button"
                   >
                     <span className="material-symbols-outlined text-[18px]">send</span>
@@ -646,87 +553,45 @@ export const DoingPage: React.FC = () => {
             </div>
           )}
 
-          {/* 5. MODAL HỖ TRỢ GIÁM THỊ KHẨN CẤP */}
-          {isProctorModalOpen && (
-            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-150">
-                <div className="px-4 py-3 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
-                    <span className="material-symbols-outlined text-[20px]">
-                      e911_emergency
-                    </span>
-                    <span>Kênh Hỗ Trợ Kỹ Thuật Khẩn Cấp</span>
-                  </div>
-                  <button
-                    onClick={() => setIsProctorModalOpen(false)}
-                    className="w-7 h-7 rounded-lg hover:bg-slate-200 text-slate-500 flex items-center justify-center"
-                    type="button"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">close</span>
-                  </button>
-                </div>
-
-                <div className="p-4 space-y-3 text-xs">
-                  <p className="text-slate-600">
-                    Bạn gặp sự cố về bàn phím hoặc kết nối? Hãy chọn phương thức bên dưới để thông báo cho Hội đồng giám thị:
-                  </p>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => alert('Đã gửi tín hiệu cứu trợ tới Giám thị!')}
-                      className="w-full p-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 text-left transition-all"
-                      type="button"
-                    >
-                      <p className="font-bold text-slate-800">Yêu cầu giám thị kiểm tra tại chỗ</p>
-                      <p className="text-slate-500 text-[11px]">Gửi thông báo âm thầm tới máy giám thị</p>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 text-right">
-                  <button
-                    onClick={() => setIsProctorModalOpen(false)}
-                    className="px-4 py-1.5 rounded-lg bg-slate-800 text-white font-medium text-xs hover:bg-slate-900 transition-colors"
-                    type="button"
-                  >
-                    Đóng cửa sổ
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 6. MODAL TRỢ GIÚP & QUY CHẾ THI */}
+          {/* 4. MODAL TRỢ GIÚP & QUY CHẾ */}
           {isHelpModalOpen && (
             <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-150">
-                <div className="px-5 py-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
-                    <span className="material-symbols-outlined text-[20px] text-blue-600">help</span>
-                    <span>Quy chế &amp; Hướng dẫn bài thi</span>
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-150">
+                <div className="px-5 py-4 bg-[#00236f] text-white flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[22px]">policy</span>
+                    <h3 className="text-base font-bold">Quy Chế &amp; Trợ Giúp Phòng Thi</h3>
                   </div>
                   <button
                     onClick={() => setIsHelpModalOpen(false)}
-                    className="w-7 h-7 rounded-lg hover:bg-slate-200 text-slate-500 flex items-center justify-center"
+                    className="w-8 h-8 rounded-lg hover:bg-blue-700 text-white flex items-center justify-center transition-colors cursor-pointer"
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-[18px]">close</span>
+                    <span className="material-symbols-outlined">close</span>
                   </button>
                 </div>
 
-                <div className="p-5 space-y-3 text-xs text-slate-700 max-h-[60vh] overflow-y-auto">
-                  <h4 className="font-bold text-slate-900 text-sm">1. Quy định bài làm</h4>
-                  <p>Học sinh nhập trực tiếp nội dung bài làm từ bàn phím vào khung soạn thảo của từng câu.</p>
-                  <h4 className="font-bold text-slate-900 text-sm pt-2 border-t border-slate-100">2. Lưu trữ bài làm</h4>
-                  <p>Hệ thống tự động đồng bộ văn bản gõ phím vào bộ nhớ ứng dụng realtime.</p>
+                <div className="p-5 space-y-3 text-xs text-slate-600 leading-relaxed">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                    <p className="font-bold text-slate-800">Quy định về liêm chính học thuật:</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-600">
+                      <li>Không chuyển tab hoặc thoát khỏi màn hình bài thi.</li>
+                      <li>Hệ thống lưu trữ tự động toàn bộ thao tác gõ phím.</li>
+                      <li>Bài làm cần đạt độ dài tối thiểu theo yêu cầu đề bài.</li>
+                    </ul>
+                  </div>
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+                    Trường hợp gặp sự cố kết nối hoặc phần cứng, hãy liên hệ ngay với giám thị phòng thi.
+                  </div>
                 </div>
 
                 <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 text-right">
                   <button
                     onClick={() => setIsHelpModalOpen(false)}
-                    className="px-4 py-1.5 rounded-lg bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 rounded-xl bg-[#00236f] text-white font-semibold text-xs hover:bg-[#1a3889] transition-colors cursor-pointer"
                     type="button"
                   >
-                    Đã hiểu quy chế
+                    Đã hiểu &amp; Tiếp tục làm bài
                   </button>
                 </div>
               </div>

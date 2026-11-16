@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS "users" (
+CREATE TABLE IF NOT EXISTS "user" (
 	"userId" UUID NOT NULL DEFAULT gen_random_uuid(),
 	"fullName" TEXT NOT NULL,
 	"dateOfBirth" TIMESTAMP NOT NULL,
@@ -7,63 +7,55 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"sex" VARCHAR(10) NOT NULL,
 	"identificationCard" VARCHAR(12) NOT NULL UNIQUE,
 	"address" TEXT NOT NULL,
-	"password" VARCHAR(255) NOT NULL,
 	-- ACTIVE, LOCKED, INACTIVE
-	"status" VARCHAR(10) NOT NULL,
+	"status" VARCHAR(20) NOT NULL,
 	"createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"roleId" UUID NOT NULL,
 	PRIMARY KEY("userId")
 );
 
-COMMENT ON COLUMN "users"."status" IS 'ACTIVE, LOCKED, INACTIVE';
+COMMENT ON COLUMN "user"."status" IS 'ACTIVE, LOCKED, INACTIVE';
 
-CREATE TABLE IF NOT EXISTS "teachers" (
-	"userId" UUID NOT NULL,
+CREATE TABLE IF NOT EXISTS "teacher" (
+	"teacherId" UUID NOT NULL,
 	"teacherCode" VARCHAR(10) NOT NULL UNIQUE,
-	"subjectCode" VARCHAR(10) NOT NULL,
+	"subjectId" UUID NOT NULL,
 	"experience" INTEGER NOT NULL,
-	"startAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"endAt" TIMESTAMP NULL,
-	PRIMARY KEY("userId")
+	"startYear" INTEGER NOT NULL,
+	"endYear" INTEGER NULL,
+	PRIMARY KEY("teacherId")
 );
 
-CREATE TABLE IF NOT EXISTS "students" (
-	"userId" UUID NOT NULL,
+CREATE TABLE IF NOT EXISTS "student" (
+	"studentId" UUID NOT NULL,
 	"studentCode" VARCHAR(10) NOT NULL UNIQUE,
-	"majorCode" VARCHAR(10) NOT NULL,
-	"semester" SMALLINT NOT NULL DEFAULT 1 CHECK("semester" BETWEEN 1 AND 10),
-	"startAt" INTEGER NOT NULL,
-	"endAt" INTEGER NOT NULL,
-	PRIMARY KEY("userId")
+	"majorId" UUID NOT NULL,
+	"semester" SMALLINT NOT NULL,
+	"startYear" INTEGER NOT NULL,
+	"endYear" INTEGER NOT NULL,
+	PRIMARY KEY("studentId")
 );
 
-CREATE TABLE IF NOT EXISTS "roles" (
-	"roleId" UUID NOT NULL DEFAULT gen_random_uuid(),
-	"roleName" VARCHAR(50) NOT NULL,
-	PRIMARY KEY("roleId")
-);
-
-CREATE TABLE IF NOT EXISTS "subjects" (
-	"subjectCode" VARCHAR(10) NOT NULL,
+CREATE TABLE IF NOT EXISTS "subject" (
+	"subjectId" UUID NOT NULL DEFAULT gen_random_uuid(),
+	"subjectCode" VARCHAR(10) NOT NULL UNIQUE,
 	"subjectName" TEXT NOT NULL,
-	PRIMARY KEY("subjectCode")
+	PRIMARY KEY("subjectId")
 );
 
 CREATE TABLE IF NOT EXISTS "exam" (
 	"examId" UUID NOT NULL DEFAULT gen_random_uuid(),
 	"title" TEXT NOT NULL,
-	"maxScore" DECIMAL NOT NULL,
 	"startAt" TIMESTAMP NOT NULL,
 	"endAt" TIMESTAMP NOT NULL,
-	"createdBy" VARCHAR(10) NOT NULL,
+	"createdBy" UUID NOT NULL,
 	"createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	-- QUIZ, EXAM, HOMEWORK
 	"type" TEXT NOT NULL,
 	-- OPEN, CLOSE, PREPARE
-	"status" VARCHAR(10) NOT NULL,
+	"status" VARCHAR(20) NOT NULL,
 	"passcode" VARCHAR(10) NOT NULL,
-	"questionsId" UUID NOT NULL,
-	"subjectCode" VARCHAR(10) NOT NULL,
+	"questionId" UUID NOT NULL,
+	"subjectId" UUID NOT NULL,
 	PRIMARY KEY("examId")
 );
 
@@ -72,16 +64,16 @@ COMMENT ON COLUMN "exam"."status" IS 'OPEN, CLOSE, PREPARE';
 
 CREATE TABLE IF NOT EXISTS "history" (
 	"historyId" UUID NOT NULL DEFAULT gen_random_uuid(),
-	"studentCode" VARCHAR(10) NOT NULL,
+	"studentId" UUID NOT NULL,
 	"feedback" TEXT NULL,
 	-- Submission, Not Submission, Grade, Not Grade
-	"statusSubmission" VARCHAR(10) NULL,
+	"statusSubmission" VARCHAR(20) NULL,
 	"submissionAt" TIMESTAMP NULL,
 	"score" DECIMAL NULL,
 	"gradeAt" TIMESTAMP NULL,
-	"statusGrading" VARCHAR(10) NULL,
-	"gradeBy" VARCHAR(10) NULL,
-	"statusJoin" VARCHAR(10) NOT NULL,
+	"statusGrading" VARCHAR(20) NULL,
+	"gradeBy" UUID NULL,
+	"statusJoin" VARCHAR(20) NOT NULL,
 	"joinAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	"examId" UUID NOT NULL,
 	PRIMARY KEY("historyId")
@@ -89,30 +81,31 @@ CREATE TABLE IF NOT EXISTS "history" (
 
 COMMENT ON COLUMN "history"."statusSubmission" IS 'Submission, Not Submission, Grade, Not Grade';
 
-CREATE TABLE IF NOT EXISTS "bankQuestions" (
-	"bankQuestionld" UUID NOT NULL DEFAULT gen_random_uuid(),
+CREATE TABLE IF NOT EXISTS "bankQuestion" (
+	"questionId" UUID NOT NULL DEFAULT gen_random_uuid(),
 	"content" TEXT NOT NULL,
-	"subjectCode" VARCHAR(10) NOT NULL,
-	PRIMARY KEY("bankQuestionld")
+	"subjectId" UUID NOT NULL,
+	PRIMARY KEY("questionId")
 );
 
 CREATE TABLE IF NOT EXISTS "studentAnswer" (
-	"answerId" UUID NOT NULL,
+	"answerId" UUID NOT NULL DEFAULT gen_random_uuid(),
 	"content" TEXT NOT NULL,
 	"wordCount" INTEGER NOT NULL,
-	"reportId" UUID NULL,
+	"reportId" UUID UNIQUE NULL,
 	PRIMARY KEY("answerId")
 );
 
 CREATE TABLE IF NOT EXISTS "major" (
+	"majorId" UUID NOT NULL DEFAULT gen_random_uuid(),
 	"majorCode" VARCHAR(10) NOT NULL,
 	"majorName" TEXT NOT NULL,
-	PRIMARY KEY("majorCode")
+	PRIMARY KEY("majorId")
 );
 
 CREATE TABLE IF NOT EXISTS "reportAI" (
 	"reportId" UUID NOT NULL DEFAULT gen_random_uuid(),
-	"stylometryId" UUID NOT NULL,
+	"stylometryId" UUID NOT NULL UNIQUE,
 	"perplexity" TEXT NOT NULL,
 	"burstiness" TEXT NOT NULL,
 	"statusFlag" VARCHAR(10) NOT NULL,
@@ -120,39 +113,30 @@ CREATE TABLE IF NOT EXISTS "reportAI" (
 );
 
 CREATE TABLE IF NOT EXISTS "subjectMajor" (
-	"majorCode" VARCHAR(10) NOT NULL,
-	"subjectCode" VARCHAR(10) NOT NULL,
-	PRIMARY KEY("majorCode", "subjectCode")
+	"majorId" UUID NOT NULL,
+	"subjectId" UUID NOT NULL,
+	PRIMARY KEY("majorId", "subjectId")
 );
 
 COMMENT ON TABLE "subjectMajor" IS 'Bảng phụ';
 
 CREATE TABLE IF NOT EXISTS "stylometry" (
 	"stylometryId" UUID NOT NULL DEFAULT gen_random_uuid(),
-	"vocabulary" TEXT NOT NULL,
-	"grammar" TEXT NOT NULL,
-	"mistake" TEXT NOT NULL,
-	"express" TEXT NOT NULL,
+	"vocabulary" JSONB NOT NULL,
+	"grammar" JSONB NOT NULL,
+	"mistake" JSONB NOT NULL,
+	"express" JSONB NOT NULL,
 	PRIMARY KEY("stylometryId")
 );
 
-ALTER TABLE "users"
-ADD FOREIGN KEY("roleId") REFERENCES "roles"("roleId")
+ALTER TABLE "teacher"
+ADD FOREIGN KEY("teacherId") REFERENCES "user"("userId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
-ALTER TABLE "teachers"
-ADD FOREIGN KEY("userId") REFERENCES "users"("userId")
+ALTER TABLE "student"
+ADD FOREIGN KEY("studentId") REFERENCES "user"("userId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
-ALTER TABLE "students"
-ADD FOREIGN KEY("userId") REFERENCES "users"("userId")
-ON UPDATE NO ACTION ON DELETE NO ACTION;
-ALTER TABLE "exam"
-ADD FOREIGN KEY("createdBy") REFERENCES "teachers"("teacherCode")
-ON UPDATE CASCADE ON DELETE NO ACTION;
-ALTER TABLE "history"
-ADD FOREIGN KEY("studentCode") REFERENCES "students"("studentCode")
-ON UPDATE CASCADE ON DELETE NO ACTION;
-ALTER TABLE "bankQuestions"
-ADD FOREIGN KEY("subjectCode") REFERENCES "subjects"("subjectCode")
+ALTER TABLE "bankQuestion"
+ADD FOREIGN KEY("subjectId") REFERENCES "subject"("subjectId")
 ON UPDATE CASCADE ON DELETE NO ACTION;
 ALTER TABLE "history"
 ADD FOREIGN KEY("examId") REFERENCES "exam"("examId")
@@ -160,30 +144,36 @@ ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "studentAnswer"
 ADD FOREIGN KEY("reportId") REFERENCES "reportAI"("reportId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
-ALTER TABLE "studentAnswer"
-ADD FOREIGN KEY("answerId") REFERENCES "history"("historyId")
-ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "reportAI"
 ADD FOREIGN KEY("stylometryId") REFERENCES "stylometry"("stylometryId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "subjectMajor"
-ADD FOREIGN KEY("majorCode") REFERENCES "major"("majorCode")
+ADD FOREIGN KEY("majorId") REFERENCES "major"("majorId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "subjectMajor"
-ADD FOREIGN KEY("subjectCode") REFERENCES "subjects"("subjectCode")
+ADD FOREIGN KEY("subjectId") REFERENCES "subject"("subjectId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "exam"
-ADD FOREIGN KEY("questionsId") REFERENCES "bankQuestions"("bankQuestionld")
+ADD FOREIGN KEY("questionId") REFERENCES "bankQuestion"("questionId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "exam"
-ADD FOREIGN KEY("subjectCode") REFERENCES "subjects"("subjectCode")
+ADD FOREIGN KEY("subjectId") REFERENCES "subject"("subjectId")
+ON UPDATE NO ACTION ON DELETE NO ACTION;
+ALTER TABLE "student"
+ADD FOREIGN KEY("majorId") REFERENCES "major"("majorId")
+ON UPDATE NO ACTION ON DELETE NO ACTION;
+ALTER TABLE "teacher"
+ADD FOREIGN KEY("subjectId") REFERENCES "subject"("subjectId")
+ON UPDATE NO ACTION ON DELETE NO ACTION;
+ALTER TABLE "studentAnswer"
+ADD FOREIGN KEY("answerId") REFERENCES "history"("historyId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "history"
-ADD FOREIGN KEY("gradeBy") REFERENCES "teachers"("teacherCode")
-ON UPDATE CASCADE ON DELETE NO ACTION;
-ALTER TABLE "students"
-ADD FOREIGN KEY("majorCode") REFERENCES "major"("majorCode")
+ADD FOREIGN KEY("gradeBy") REFERENCES "teacher"("teacherId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
-ALTER TABLE "teachers"
-ADD FOREIGN KEY("subjectCode") REFERENCES "subjects"("subjectCode")
+ALTER TABLE "exam"
+ADD FOREIGN KEY("createdBy") REFERENCES "teacher"("teacherId")
+ON UPDATE NO ACTION ON DELETE NO ACTION;
+ALTER TABLE "history"
+ADD FOREIGN KEY("studentId") REFERENCES "student"("studentId")
 ON UPDATE NO ACTION ON DELETE NO ACTION;

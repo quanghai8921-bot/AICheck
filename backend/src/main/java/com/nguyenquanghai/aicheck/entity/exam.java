@@ -3,7 +3,6 @@ package com.nguyenquanghai.aicheck.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -23,9 +22,6 @@ public class exam {
 
     @Column(name = "title", nullable = false, columnDefinition = "TEXT")
     private String title;
-
-    @Column(name = "maxScore", nullable = false)
-    private BigDecimal maxScore;
 
     @Column(name = "startAt", nullable = false)
     private LocalDateTime startAt;
@@ -54,7 +50,7 @@ public class exam {
     private bankQuestion bankQuestion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subjectId", referencedColumnName = "subjectCode", nullable = false)
+    @JoinColumn(name = "subjectId", referencedColumnName = "subjectId", nullable = false)
     private subject subjects;
 
 }

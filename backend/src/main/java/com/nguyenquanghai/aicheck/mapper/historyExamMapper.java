@@ -5,11 +5,9 @@ import com.nguyenquanghai.aicheck.entity.history;
 
 public class historyExamMapper {
     public historyExam toRespone(history history) {
-
         return historyExam.builder()
                 .examId(history.getExam().getExamId())
                 .historyId(history.getHistoryId())
-                .studentCode(history.getStudent().getStudentCode())
                 .score(history.getScore())
                 .feedback(history.getFeedback())
                 .statusGrading(history.getStatusGrading())

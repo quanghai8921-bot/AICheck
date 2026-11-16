@@ -1,12 +1,13 @@
 package com.nguyenquanghai.aicheck.dto.request.student;
 
+import java.util.UUID;
+
 import lombok.*;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class examPasscode {
-    //Kiểm tra passcode
-    //Có id kì thi đó từ response listExam
+public class VerifyPasscodeRequest {
+    private UUID examId;
     private String passcode;
 }

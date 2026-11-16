@@ -1,5 +1,7 @@
 package com.nguyenquanghai.aicheck.entity;
 
+import java.util.UUID;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,8 +15,11 @@ import lombok.*;
 
 public class studentAnswer {
     @Id
+    @Column(name = "answerId", nullable = false)
+    private UUID answerId; // 1. Khai báo rõ ràng ID là UUID
+    @MapsId // 2. Báo cho JPA biết answerId sẽ lấy giá trị từ historyId
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "historyId", referencedColumnName = "historyId", nullable = false)
+    @JoinColumn(name = "answerId", referencedColumnName = "historyId", nullable = false)
     private history history;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")

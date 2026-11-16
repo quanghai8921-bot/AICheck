@@ -1,0 +1,1383 @@
+openapi: 3.0.3
+info:
+  title: AICheck System API
+  description: Hệ thống kiểm tra và phát hiện đạo văn, AI trong bài nộp
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local Development Server
+
+paths:
+  # =========================================================================
+  # 1. XÁC THỰC DÀNH CHO SINH VIÊN (STUDENT AUTHENTICATION)
+  # =========================================================================
+  /api/v1/auth/student/login:
+    post:
+      tags:
+        - Student - Authentication
+      summary: Đăng nhập dành cho Sinh viên (Dùng Mã sinh viên)
+      description: Sinh viên nhập mã sinh viên và mật khẩu. Backend sẽ kiểm tra và lấy Token từ Keycloak.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentLoginRequest'
+      responses:
+        '200':
+          description: Đăng nhập thành công, trả về Access Token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Sai mã sinh viên hoặc mật khẩu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorLoginResponse'
+
+  # =========================================================================
+  # 2. XÁC THỰC DÀNH CHO GIÁO VIÊN (TEACHER AUTHENTICATION)
+  # =========================================================================
+  /api/v1/auth/teacher/login:
+    post:
+      tags:
+        - Teacher - Authentication
+      summary: Đăng nhập dành cho Giáo viên (Dùng Mã giáo viên)
+      description: Giáo viên nhập mã giáo viên và mật khẩu. Backend sẽ kiểm tra và lấy Token từ Keycloak.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeacherLoginRequest'
+      responses:
+        '200':
+          description: Đăng nhập thành công, trả về Access Token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Dữ liệu gửi lên không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorLoginResponse'
+        '401':
+          description: Sai mã giáo viên hoặc mật khẩu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorLoginResponse'
+
+  # =========================================================================
+  # 3. QUÊN MẬT KHẨU & KHÔI PHỤC TÀI KHOẢN (PASSWORD RECOVERY)
+  # =========================================================================
+  /api/v1/auth/forgot-password:
+    post:
+      tags:
+        - Authentication - Forgot Password
+      summary: Quên mật khẩu (Gửi email qua Keycloak)
+      description: Sinh viên/Giáo viên nhập email trường cấp. Keycloak sẽ gửi liên kết đặt lại mật khẩu về hòm thư.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Yêu cầu thành công, kiểm tra email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Không tìm thấy tài khoản gắn với email này
+
+  # =========================================================================
+  # 4. KỲ THI DÀNH CHO SINH VIÊN (STUDENT EXAMINATIONS)
+  # =========================================================================
+  /api/v1/student/exams:
+    get:
+      tags:
+        - Student - Exam
+      summary: Lấy danh sách kỳ thi của sinh viên
+      description: Trả về toàn bộ danh sách các ca thi đang mở (Actived) hoặc sắp mở (Prepare) để sinh viên tham gia.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách kỳ thi thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExamItemResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập (Chỉ dành cho Sinh viên)
+
+  /api/v1/student/exams/{examId}/join:
+    post:
+      tags:
+        - Student - Exam
+      summary: Sinh viên nhập mã phòng (Passcode) để vào ca thi
+      description: Sinh viên nhập mã passcode 6 ký tự do giám thị cung cấp. Nếu hợp lệ, hệ thống ghi nhận thời điểm tham gia (joinAt) và trả về thông tin cho phép bắt đầu tính giờ làm bài.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID của kỳ thi (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyPasscodeRequest'
+      responses:
+        '200':
+          description: Mã phòng hợp lệ, sinh viên bắt đầu làm bài
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyPasscodeResponse'
+        '400':
+          description: Sai mã phòng thi (passcode) hoặc ca thi chưa mở / đã đóng
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền tham gia kỳ thi này
+        '404':
+          description: Không tìm thấy kỳ thi
+
+  /api/v1/student/exams/{examId}/questions:
+    get:
+      tags:
+        - Student - Exam
+      summary: Lấy danh sách câu hỏi của kỳ thi
+      description: Lấy danh sách các câu hỏi / đề bài tự luận của kỳ thi để sinh viên làm bài.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID của kỳ thi (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+      responses:
+        '200':
+          description: Lấy danh sách câu hỏi thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/listQuestion'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập hoặc kỳ thi chưa tới giờ mở
+        '404':
+          description: Không tìm thấy kỳ thi
+
+  /api/v1/student/exams/{examId}/submit:
+    post:
+      tags:
+        - Student - Exam
+      summary: Sinh viên nộp bài thi theo ID kỳ thi
+      description: Sinh viên nộp bài làm tự luận cho kỳ thi. Hệ thống tự động ghi nhận thời gian nộp, đếm số từ và kích hoạt hàng đợi quét AI. ID sinh viên được lấy từ Token.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID của kỳ thi (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitExamRequest'
+      responses:
+        '200':
+          description: Nộp bài thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitExamResponse'
+        '400':
+          description: Đã hết thời gian nộp bài hoặc bài làm rỗng
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền nộp bài cho ca thi này
+        '404':
+          description: Không tìm thấy kỳ thi
+
+  /api/v1/student/{studentId}/major:
+    get:
+      tags:
+        - Student - Major
+      summary: Lấy thông tin chuyên ngành của sinh viên
+      description: Trả về thông tin chuyên ngành mà sinh viên đang theo học (bao gồm ID chuyên ngành, mã chuyên ngành).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          description: ID của sinh viên (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      responses:
+        '200':
+          description: Lấy thông tin chuyên ngành thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentMajorResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập
+        '404':
+          description: Không tìm thấy sinh viên
+
+  /api/v1/student/majors/{majorId}/subjects:
+    get:
+      tags:
+        - Student - Major
+      summary: Lấy danh sách môn học theo chuyên ngành
+      description: Trả về danh sách tất cả các môn học thuộc chuyên ngành cụ thể theo ID chuyên ngành (UUID).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: majorId
+          in: path
+          required: true
+          description: ID của chuyên ngành (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "8da95f64-5717-4562-b3fc-2c963f66afb7"
+      responses:
+        '200':
+          description: Lấy danh sách môn học thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubjectMajorResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập
+        '404':
+          description: Không tìm thấy chuyên ngành
+
+  # =========================================================================
+  # 5. LỊCH SỬ THI DÀNH CHO SINH VIÊN (STUDENT EXAM HISTORY)
+  # =========================================================================
+  /api/v1/student/history:
+    get:
+      tags:
+        - Student - Exam History
+      summary: Danh sách lịch sử các bài thi đã làm của sinh viên
+      description: Lấy danh sách các bài thi mà sinh viên đang đăng nhập đã từng tham gia và nộp bài. ID sinh viên được trích xuất tự động từ Access Token (JWT), đảm bảo an toàn và bảo mật.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách lịch sử thi thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudentExamHistorySummaryResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập (Chỉ dành cho sinh viên)
+
+  /api/v1/student/history/{historyId}:
+    get:
+      tags:
+        - Student - Exam History
+      summary: Xem chi tiết 1 bài kiểm tra đã làm theo ID lịch sử
+      description: Xem tổng quan kết quả ca thi, điểm số, đánh giá nhận xét của giảng viên. Hệ thống tự động đối soát quyền sở hữu bài thi thông qua Token của người đăng nhập.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: historyId
+          in: path
+          required: true
+          description: ID bản ghi lịch sử nộp bài (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+      responses:
+        '200':
+          description: Lấy chi tiết lịch sử bài thi thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentExamHistoryDetailResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập (Không phải chủ sở hữu bài thi này)
+        '404':
+          description: Không tìm thấy bài thi hoặc lịch sử không tồn tại
+
+  /api/v1/student/history/{historyId}/submission-details:
+    get:
+      tags:
+        - Student - Exam History
+      summary: Xem chi tiết đề bài, câu trả lời đã nộp và phân tích AI Stylometry
+      description: Đi sâu vào xem câu hỏi trong đề, nội dung câu trả lời tự luận mà sinh viên đã nộp cùng kết quả phân tích AI Stylometry (đạo văn, từ vựng, ngữ pháp).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: historyId
+          in: path
+          required: true
+          description: ID bản ghi lịch sử nộp bài (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+      responses:
+        '200':
+          description: Lấy chi tiết câu hỏi và câu trả lời thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentSubmissionDeepDetailResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập (Không phải chủ sở hữu bài thi này)
+        '404':
+          description: Không tìm thấy bài làm
+
+  # =========================================================================
+  # 6. QUẢN LÝ KỲ THI DÀNH CHO GIÁO VIÊN (TEACHER EXAM MANAGEMENT)
+  # =========================================================================
+  /api/v1/teacher/exams:
+    get:
+      tags:
+        - Teacher - Exam
+      summary: Giáo viên xem lịch sử các bài kiểm tra đã tạo
+      description: Lấy danh sách toàn bộ các bài kiểm tra do giáo viên đang đăng nhập khởi tạo. ID giáo viên được trích xuất tự động từ Access Token.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Lọc theo trạng thái kỳ thi (OPEN, UPCOMING, CLOSED)
+          schema:
+            type: string
+            example: "OPEN"
+      responses:
+        '200':
+          description: Lấy danh sách bài kiểm tra đã tạo thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeacherExamItemResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập (Chỉ dành cho Giảng viên)
+
+    post:
+      tags:
+        - Teacher - Exam
+      summary: Tạo mới bài kiểm tra
+      description: Giảng viên khởi tạo bài kiểm tra tự luận mới (chọn câu hỏi từ ngân hàng đề hoặc tự soạn thảo đề thi mới).
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExamRequest'
+      responses:
+        '201':
+          description: Khởi tạo bài kiểm tra thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateExamResponse'
+        '400':
+          description: Dữ liệu nhập vào không hợp lệ hoặc thiếu thông tin
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền tạo kỳ thi
+
+  /api/v1/teacher/exams/{examId}:
+    get:
+      tags:
+        - Teacher - Exam
+      summary: Nhận bài kiểm tra theo ID kỳ thi
+      description: Lấy đầy đủ thông tin chi tiết của bài kiểm tra theo ID kỳ thi bao gồm nội dung đề bài, môn học, khung giờ, mã passcode và thống kê số lượng bài nộp.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID của kỳ thi cần xem (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+      responses:
+        '200':
+          description: Lấy chi tiết bài kiểm tra thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherExamDetailResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền xem bài kiểm tra này
+        '404':
+          description: Không tìm thấy kỳ thi
+
+  /api/v1/teacher/submissions/{historyId}:
+    get:
+      tags:
+        - Teacher - Exam
+      summary: Giáo viên xem chi tiết 1 bài kiểm tra sinh viên nộp và kèm bản báo cáo AI
+      description: Xem thông tin sinh viên, nội dung đề bài, toàn văn bài làm tự luận của sinh viên cùng toàn bộ báo cáo phân tích AI Stylometry (độ bất ngờ perplexity, biến thiên burstiness, từ vựng, ngữ pháp, lỗi câu).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: historyId
+          in: path
+          required: true
+          description: ID bản ghi lịch sử nộp bài (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+      responses:
+        '200':
+          description: Lấy chi tiết bài nộp và báo cáo AI thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherSubmissionDetailResponse'
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền truy cập bài nộp này
+        '404':
+          description: Không tìm thấy bài làm
+
+  /api/v1/teacher/submissions/{historyId}/grade:
+    post:
+      tags:
+        - Teacher - Exam
+      summary: Giáo viên chấm bài kiểm tra của 1 sinh viên
+      description: Giảng viên nhập điểm số (thang điểm 10) và nhận xét bài thi cho sinh viên. Hệ thống tự động ghi nhận thời điểm chấm và mã giảng viên chấm lấy từ Token.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: historyId
+          in: path
+          required: true
+          description: ID bản ghi lịch sử nộp bài (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeSubmissionRequest'
+      responses:
+        '200':
+          description: Chấm điểm bài thi thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeSubmissionResponse'
+        '400':
+          description: Điểm số không hợp lệ (phải từ 0 đến 10) hoặc thiếu nhận xét
+        '401':
+          description: Chưa đăng nhập hoặc Token hết hạn
+        '403':
+          description: Không có quyền chấm bài thi này
+        '404':
+          description: Không tìm thấy bài thi cần chấm
+
+components:
+  # ==========================================
+  # CẤU HÌNH NÚT BẤM "AUTHORIZE" NHẬP TOKEN
+  # ==========================================
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Dán Access Token nhận được từ Keycloak vào đây (Không cần gõ chữ 'Bearer')
+
+  # ==========================================
+  # ĐỊNH NGHĨA CÁC ĐỐI TƯỢNG DỮ LIỆU (DTO)
+  # ==========================================
+  schemas:
+    # 1. Đăng nhập Sinh viên (Dùng Mã sinh viên)
+    StudentLoginRequest:
+      type: object
+      required:
+        - studentCode
+        - password
+      properties:
+        studentCode:
+          type: string
+          example: "SV2026001"
+          description: Mã số sinh viên
+        password:
+          type: string
+          example: "123456"
+          description: Mật khẩu
+
+    # 2. Đăng nhập Giáo viên (Dùng Mã giáo viên)
+    TeacherLoginRequest:
+      type: object
+      required:
+        - teacherCode
+        - password
+      properties:
+        teacherCode:
+          type: string
+          example: "GV2026001"
+          description: Mã số giáo viên / cán bộ
+        password:
+          type: string
+          example: "123456"
+          description: Mật khẩu
+
+    # 3. Quên mật khẩu (Dùng Email)
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "nguyenvanan@university.edu.vn"
+          description: Địa chỉ email đã đăng ký với trường
+
+    # 4. Trả về Token khi đăng nhập thành công
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJSUzI1NiIsInR5cCI6..."
+          description: Chuỗi JWT Access Token từ Keycloak
+        tokenType:
+          type: string
+          example: "Bearer"
+        expiresIn:
+          type: integer
+          example: 300
+          description: Thời gian sống của Token tính theo giây
+        role:
+          type: string
+          example: "STUDENT"
+          description: Quyền hạn của tài khoản (STUDENT hoặc TEACHER)
+
+          # Thêm vào khoảng dòng 592 (ngang cấp với LoginResponse):
+    ErrorLoginResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-11-10T17:15:00"
+        status:
+          type: integer
+          example: 401
+        error:
+          type: string
+          example: "Unauthorized"
+        message:
+          type: string
+          example: "Mã đăng nhập hoặc mật khẩu không chính xác."
+        path:
+          type: string
+          example: "/api/v1/auth/student/login"
+
+    # 5. Thông báo chung
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Yêu cầu đã được gửi thành công."
+
+    # 6. Thông tin ca thi dành cho Sinh viên
+    ExamItemResponse:
+      type: object
+      properties:
+        examId:
+          type: string
+          format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          description: ID của kỳ thi
+        title:
+          type: string
+          example: "Thi Viết Tự Luận & Báo Cáo Học Thuật"
+          description: Tên kỳ thi
+        courseCode:
+          type: string
+          example: "ENG302"
+          description: Mã môn học
+        courseTitle:
+          type: string
+          example: "Kỹ Năng Viết Học Thuật Tiếng Anh Nâng Cao"
+          description: Tên môn học
+        examType:
+          type: string
+          example: "Thi Viết Tự Luận (Online Essay)"
+          description: Hình thức thi
+        startAt:
+          type: string
+          format: date-time
+          example: "2026-11-06T08:00:00"
+          description: Thời điểm bắt đầu mở ca thi
+        endAt:
+          type: string
+          format: date-time
+          example: "2026-11-06T09:30:00"
+          description: Thời điểm kết thúc ca thi
+        durationMinutes:
+          type: integer
+          example: 90
+          description: Thời lượng làm bài (phút)
+        status:
+          type: string
+          example: "OPEN"
+          description: Trạng thái (OPEN, UPCOMING, CLOSED)
+        isOpen:
+          type: boolean
+          example: true
+          description: Ca thi có đang trong thời gian mở để vào làm bài hay không
+        proctorName:
+          type: string
+          example: "TS. Nguyễn Văn A"
+          description: Họ tên giảng viên phụ trách / giám thị
+        requiresPasscode:
+          type: boolean
+          example: true
+          description: Ca thi có yêu cầu nhập mã passcode phòng thi hay không
+
+    # 7. Thông tin câu hỏi trong đề thi
+    listQuestion:
+      type: object
+      properties:
+        questionId:
+          type: string
+          format: uuid
+          example: "d3b07384-d113-4f44-96f7-bca888d3a111"
+          description: ID câu hỏi trong ngân hàng đề
+        content:
+          type: string
+          example: "Hãy phân tích tác động của Trí tuệ nhân tạo (AI) đối với tính trung thực trong học thuật hiện nay."
+          description: Nội dung chi tiết của câu hỏi / đề bài
+
+    # 8. Lịch sử bài thi tóm tắt (danh sách)
+    StudentExamHistorySummaryResponse:
+      type: object
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+          description: ID lịch sử làm bài
+        examId:
+          type: string
+          format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          description: ID kỳ thi
+        courseCode:
+          type: string
+          example: "CS201"
+          description: Mã môn học
+        courseTitle:
+          type: string
+          example: "Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng"
+          description: Tên môn học
+        examTitle:
+          type: string
+          example: "Thi Viết Tự Luận Thuật Toán"
+          description: Tên kỳ thi
+        examType:
+          type: string
+          example: "Tự luận giải thuật"
+          description: Loại hình thi
+        submissionAt:
+          type: string
+          format: date-time
+          example: "2024-10-12T11:25:00"
+          description: Thời điểm nộp bài
+        score:
+          type: number
+          format: float
+          example: 9.0
+          description: Điểm số đạt được
+        statusGrading:
+          type: string
+          example: "GRADED"
+          description: Trạng thái chấm điểm (GRADED, PENDING)
+        feedback:
+          type: string
+          example: "Phần lập luận thuật toán tối ưu tốt, mã giả rõ ràng."
+          description: Nhận xét tóm tắt từ giảng viên
+        lecturerName:
+          type: string
+          example: "TS. Lê Quang Mai"
+          description: Tên giảng viên chấm bài
+
+    # 9. Chi tiết 1 lịch sử ca thi
+    StudentExamHistoryDetailResponse:
+      type: object
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+        courseCode:
+          type: string
+          example: "CS201"
+        courseTitle:
+          type: string
+          example: "Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng"
+        examTitle:
+          type: string
+          example: "Tự Luận Giải Thuật Nâng Cao"
+        examType:
+          type: string
+          example: "Tự luận giải thuật"
+        durationMinutes:
+          type: integer
+          example: 120
+        submissionAt:
+          type: string
+          format: date-time
+          example: "2024-10-12T11:25:00"
+        gradeAt:
+          type: string
+          format: date-time
+          example: "2024-10-13T14:20:00"
+        lecturerName:
+          type: string
+          example: "TS. Lê Quang Mai"
+        department:
+          type: string
+          example: "Bộ môn Khoa Học Máy Tính"
+        score:
+          type: number
+          format: float
+          example: 9.0
+        letterGrade:
+          type: string
+          example: "A"
+        gradeBadgeText:
+          type: string
+          example: "Xuất sắc"
+        feedback:
+          type: string
+          example: "Phần lập luận thuật toán tối ưu tốt, mã giả rõ ràng, bài viết tự luận phân tích độ phức tạp thời gian O(n log n) rất sâu sắc và thuyết phục."
+        similarityPercentage:
+          type: number
+          format: float
+          example: 3.2
+          description: Tỷ lệ trùng lặp phát hiện bởi AI (%)
+        aiStatusFlag:
+          type: string
+          example: "NORMAL"
+          description: Cờ cảnh báo AI (NORMAL, SUSPICIOUS, AI_GENERATED)
+
+    # 10. Đi sâu vào chi tiết câu hỏi và bài làm đã nộp
+    StudentSubmissionDeepDetailResponse:
+      type: object
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+        question:
+          type: object
+          properties:
+            questionId:
+              type: string
+              format: uuid
+              example: "d3b07384-d113-4f44-96f7-bca888d3a111"
+            content:
+              type: string
+              example: "Trình bày thuật toán tìm đường đi ngắn nhất Dijkstra và phân tích độ phức tạp khi sử dụng Min-Heap."
+        studentAnswer:
+          type: object
+          properties:
+            answerId:
+              type: string
+              format: uuid
+              example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+            content:
+              type: string
+              example: "Để giải bài toán tìm đường đi ngắn nhất từ một đỉnh nguồn tới tất cả các đỉnh còn lại trong đồ thị có trọng số không âm, thuật toán Dijkstra hoạt động theo nguyên lý tham lam..."
+            wordCount:
+              type: integer
+              example: 450
+        aiReport:
+          type: object
+          properties:
+            reportId:
+              type: string
+              format: uuid
+              example: "fa4b611e-8e36-4d1b-80df-5e4a8f9c1122"
+            statusFlag:
+              type: string
+              example: "HUMAN_WRITTEN"
+            perplexity:
+              type: string
+              example: "68.4"
+              description: Độ đo tính bất ngờ của từ ngữ trong văn bản
+            burstiness:
+              type: string
+              example: "0.42"
+              description: Độ biến thiên cấu trúc câu
+            stylometryDetails:
+              type: object
+              properties:
+                vocabularyScore:
+                  type: string
+                  example: "4.8/5.0"
+                grammarScore:
+                  type: string
+                  example: "4.2/5.0"
+                analysisNote:
+                  type: string
+                  example: "Văn phong tự nhiên, có dấu ấn tác phong sinh viên đặc trưng."
+
+    # 11. Yêu cầu nộp bài của Sinh viên
+    SubmitExamRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: "Thưa thầy, bài làm phân tích cấu trúc cây BST của em như sau: Thao tác xóa nút có 2 con đòi hỏi tìm phần tử kế vị nhỏ nhất ở cây con phải..."
+          description: Toàn bộ nội dung bài làm tự luận của sinh viên
+        wordCount:
+          type: integer
+          example: 320
+          description: Số lượng từ ước tính
+
+    # 12. Phản hồi sau khi Sinh viên nộp bài
+    SubmitExamResponse:
+      type: object
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+          description: ID bản ghi lịch sử nộp bài được tạo ra
+        examId:
+          type: string
+          format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        submissionAt:
+          type: string
+          format: date-time
+          example: "2024-10-18T10:15:30"
+        statusSubmission:
+          type: string
+          example: "SUBMITTED"
+        message:
+          type: string
+          example: "Nộp bài thành công. Hệ thống đang tiến hành kiểm tra AI."
+
+    # 13. Dữ liệu tạo mới bài kiểm tra (Giáo viên)
+    CreateExamRequest:
+      type: object
+      required:
+        - title
+        - subjectId
+        - type
+        - passcode
+        - startAt
+        - endAt
+        - questionSource
+      properties:
+        title:
+          type: string
+          example: "Kiểm tra giữa kỳ - Lớp CS201"
+          description: Tiêu đề bài kiểm tra
+        subjectId:
+          type: string
+          format: uuid
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          description: ID môn học
+        type:
+          type: string
+          example: "Tự luận viết học thuật"
+          description: Hình thức thi
+        passcode:
+          type: string
+          example: "ENG882"
+          description: Mã passcode vào phòng thi (6 ký tự)
+        startAt:
+          type: string
+          format: date-time
+          example: "2024-10-18T09:00:00"
+          description: Thời gian bắt đầu mở ca thi
+        endAt:
+          type: string
+          format: date-time
+          example: "2024-10-18T10:30:00"
+          description: Thời gian kết thúc ca thi
+        questionSource:
+          type: string
+          enum: [bank, custom]
+          example: "bank"
+          description: Nguồn đề thi (chọn từ ngân hàng hoặc tự viết)
+        questionId:
+          type: string
+          format: uuid
+          example: "d3b07384-d113-4f44-96f7-bca888d3a111"
+          description: ID câu hỏi ngân hàng (nếu questionSource là 'bank')
+        customQuestionContent:
+          type: string
+          example: "Phân tích cấu trúc dữ liệu đồ thị..."
+          description: Nội dung đề bài tự soạn (nếu questionSource là 'custom')
+        saveToBank:
+          type: boolean
+          example: true
+          description: Có lưu câu hỏi tự viết vào ngân hàng đề không
+
+    # 14. Phản hồi tạo bài kiểm tra thành công
+    CreateExamResponse:
+      type: object
+      properties:
+        examId:
+          type: string
+          format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        title:
+          type: string
+          example: "Kiểm tra giữa kỳ - Lớp CS201"
+        passcode:
+          type: string
+          example: "ENG882"
+        message:
+          type: string
+          example: "Khởi tạo bài kiểm tra thành công"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-10-15T08:30:00"
+
+    # 15. Bài kiểm tra trong danh sách lịch sử của Giáo viên
+    TeacherExamItemResponse:
+      type: object
+      properties:
+        examId:
+          type: string
+          format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        title:
+          type: string
+          example: "Kiểm tra giữa kỳ - Lớp CS201"
+        subjectCode:
+          type: string
+          example: "CS201"
+        subjectName:
+          type: string
+          example: "Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng"
+        type:
+          type: string
+          example: "Tự luận viết học thuật"
+        startAt:
+          type: string
+          format: date-time
+          example: "2024-10-18T09:00:00"
+        endAt:
+          type: string
+          format: date-time
+          example: "2024-10-18T10:30:00"
+        passcode:
+          type: string
+          example: "ENG882"
+        status:
+          type: string
+          example: "OPEN"
+          description: Trạng thái (OPEN, UPCOMING, CLOSED)
+        totalSubmissions:
+          type: integer
+          example: 45
+          description: Số lượng sinh viên đã nộp bài
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-10-15T08:30:00"
+
+    # 16. Chi tiết bài kiểm tra theo ID kỳ thi (Dành cho Giáo viên)
+    TeacherExamDetailResponse:
+      type: object
+      properties:
+        examId:
+          type: string
+          format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        title:
+          type: string
+          example: "Kiểm tra giữa kỳ - Lớp CS201"
+        subjectId:
+          type: string
+          format: uuid
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        subjectCode:
+          type: string
+          example: "CS201"
+        subjectName:
+          type: string
+          example: "Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng"
+        type:
+          type: string
+          example: "Tự luận viết học thuật"
+        startAt:
+          type: string
+          format: date-time
+          example: "2024-10-18T09:00:00"
+        endAt:
+          type: string
+          format: date-time
+          example: "2024-10-18T10:30:00"
+        passcode:
+          type: string
+          example: "ENG882"
+        status:
+          type: string
+          example: "OPEN"
+        question:
+          type: object
+          properties:
+            questionId:
+              type: string
+              format: uuid
+              example: "d3b07384-d113-4f44-96f7-bca888d3a111"
+            content:
+              type: string
+              example: "Phân tích độ phức tạp thuật toán QuickSort trong trường hợp tốt nhất, trung bình và xấu nhất. Hãy đề xuất giải pháp chọn phần tử chốt (pivot) để tránh trường hợp xấu nhất."
+        totalSubmissions:
+          type: integer
+          example: 45
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-10-15T08:30:00"
+
+    # 17. Sinh viên nhập mã phòng thi
+    VerifyPasscodeRequest:
+      type: object
+      required:
+        - examId
+        - passcode
+      properties:
+        examId:
+          type: string
+          format: uuid
+          example: "f1a33d3d-a83f-4d24-b742-8de275b14a0e"
+          description: ID của kỳ thi
+        passcode:
+          type: string
+          example: "123456"
+          description: Mã passcode phòng thi (6 ký tự)
+
+    # 18. Phản hồi xác thực mã phòng thi thành công
+    VerifyPasscodeResponse:
+      type: object
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+          description: ID phiên làm bài của sinh viên
+        examId:
+          type: string
+          format: uuid
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        joinedAt:
+          type: string
+          format: date-time
+          example: "2024-10-18T09:05:00"
+          description: Thời điểm sinh viên chính thức vào phòng thi
+        durationMinutes:
+          type: integer
+          example: 90
+          description: Thời gian làm bài tối đa (phút)
+        statusJoin:
+          type: string
+          example: "JOINED"
+        message:
+          type: string
+          example: "Mã phòng thi hợp lệ. Chúc bạn làm bài tốt!"
+
+    # 19. Chi tiết bài làm sinh viên và báo cáo AI (Dành cho Giảng viên chấm)
+    TeacherSubmissionDetailResponse:
+      type: object
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+          description: ID bản ghi làm bài
+        exam:
+          type: object
+          properties:
+            examId:
+              type: string
+              format: uuid
+              example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+            title:
+              type: string
+              example: "Kiểm tra giữa kỳ - Lớp CS201"
+            subjectCode:
+              type: string
+              example: "CS201"
+            subjectName:
+              type: string
+              example: "Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng"
+            submissionAt:
+              type: string
+              format: date-time
+              example: "2024-10-18T10:15:30"
+        student:
+          type: object
+          properties:
+            studentId:
+              type: string
+              format: uuid
+              example: "b18f0cb6-4c75-4b36-a365-51f7bb9ca254"
+            studentCode:
+              type: string
+              example: "SV2026001"
+            fullName:
+              type: string
+              example: "Nguyễn Quang Hải"
+            email:
+              type: string
+              example: "hai.nq@example.com"
+        question:
+          type: object
+          properties:
+            questionId:
+              type: string
+              format: uuid
+              example: "d3b07384-d113-4f44-96f7-bca888d3a111"
+            content:
+              type: string
+              example: "Phân tích độ phức tạp thuật toán QuickSort trong trường hợp tốt nhất, trung bình và xấu nhất. Hãy đề xuất giải pháp chọn phần tử chốt (pivot) để tránh trường hợp xấu nhất."
+        studentAnswer:
+          type: object
+          properties:
+            answerId:
+              type: string
+              format: uuid
+              example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+            content:
+              type: string
+              example: "Bài làm: Độ phức tạp của QuickSort trong trường hợp tốt nhất và trung bình là O(n log n)..."
+            wordCount:
+              type: integer
+              example: 450
+        aiReport:
+          type: object
+          properties:
+            reportId:
+              type: string
+              format: uuid
+              example: "fa4b611e-8e36-4d1b-80df-5e4a8f9c1122"
+            statusFlag:
+              type: string
+              example: "HUMAN_WRITTEN"
+              description: Cờ kết luận (HUMAN_WRITTEN, SUSPICIOUS, AI_GENERATED)
+            perplexity:
+              type: string
+              example: "68.4"
+              description: Độ đo tính bất ngờ của từ ngữ trong văn bản
+            burstiness:
+              type: string
+              example: "0.42"
+              description: Độ biến thiên nhịp điệu câu văn
+            stylometryDetails:
+              type: object
+              properties:
+                vocabulary:
+                  type: string
+                  example: "{\"score\": 4.8, \"uniqueWords\": 180}"
+                grammar:
+                  type: string
+                  example: "{\"score\": 4.5, \"complexSentences\": 12}"
+                mistake:
+                  type: string
+                  example: "{\"spellingErrors\": 0, \"typos\": 1}"
+                express:
+                  type: string
+                  example: "{\"academicTone\": true, \"naturalFlow\": 0.92}"
+        grading:
+          type: object
+          properties:
+            score:
+              type: number
+              format: float
+              example: 9.0
+            feedback:
+              type: string
+              example: "Lập luận chặt chẽ, hiểu rõ nguyên lý phân vùng của QuickSort."
+            statusGrading:
+              type: string
+              example: "GRADED"
+              description: Trạng thái chấm (PENDING, GRADED)
+            gradeAt:
+              type: string
+              format: date-time
+              example: "2024-10-19T14:30:00"
+            gradedByLecturer:
+              type: string
+              example: "TS. Lê Quang Mai"
+
+    # 20. Giảng viên gửi điểm và nhận xét
+    GradeSubmissionRequest:
+      type: object
+      required:
+        - score
+        - feedback
+      properties:
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 10
+          example: 8.5
+          description: Điểm số bài thi (thang điểm 10)
+        feedback:
+          type: string
+          example: "Bài làm tốt, cấu trúc rõ ràng. Cần chú ý thêm trường hợp mảng đã sắp xếp sẵn."
+          description: Lời nhận xét và góp ý của giảng viên dành cho bài làm
+
+    # 21. Phản hồi sau khi chấm điểm thành công
+    GradeSubmissionResponse:
+      type: object
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
+        score:
+          type: number
+          format: float
+          example: 8.5
+        feedback:
+          type: string
+          example: "Bài làm tốt, cấu trúc rõ ràng. Cần chú ý thêm trường hợp mảng đã sắp xếp sẵn."
+        statusGrading:
+          type: string
+          example: "GRADED"
+        gradeAt:
+          type: string
+          format: date-time
+          example: "2024-10-19T15:20:00"
+        gradedByLecturer:
+          type: string
+          example: "TS. Lê Quang Mai"
+        message:
+          type: string
+          example: "Chấm điểm bài kiểm tra thành công."
+
+    # 22. Thông tin chuyên ngành của sinh viên
+    StudentMajorResponse:
+      type: object
+      properties:
+        studentId:
+          type: string
+          format: uuid
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          description: ID của sinh viên
+        studentCode:
+          type: string
+          example: "SV2026001"
+          description: Mã sinh viên
+        majorId:
+          type: string
+          format: uuid
+          example: "8da95f64-5717-4562-b3fc-2c963f66afb7"
+          description: ID của chuyên ngành
+        majorCode:
+          type: string
+          example: "IT"
+          description: Mã chuyên ngành
+
+    # 23. Danh sách môn học thuộc chuyên ngành
+    SubjectMajorResponse:
+      type: object
+      properties:
+        majorId:
+          type: string
+          format: uuid
+          example: "8da95f64-5717-4562-b3fc-2c963f66afb7"
+          description: ID của chuyên ngành
+        subjectId:
+          type: string
+          format: uuid
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          description: ID của môn học
+        subjectCode:
+          type: string
+          example: "CS101"
+          description: Mã môn học
+        subjectName:
+          type: string
+          example: "Lập trình hướng đối tượng"
+          description: Tên môn học

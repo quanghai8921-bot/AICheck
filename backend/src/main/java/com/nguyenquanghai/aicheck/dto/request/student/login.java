@@ -1,16 +1,13 @@
 package com.nguyenquanghai.aicheck.dto.request.student;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class login {
-    @NotBlank(message = "Mã sinh viên không được để trống")
     private String studentCode;
-
-    @NotBlank(message = "Mật khẩu không được để trống")
     private String password;
-
 }

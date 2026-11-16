@@ -8,14 +8,15 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class listExam {
-    
-    private UUID examId; //Hỗ trợ cho việc xác định passcode của kì thi
+
+    private UUID examId;
     private String title;
+    private String type;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
-    private String type;
-    private String subjectCode;
     private String status;
 
 }
+// Danh sách bài kiểm tra đang mở

@@ -39,17 +39,10 @@ public class user {
     @Column(name = "address", nullable = false, columnDefinition = "TEXT")
     private String address;
 
-    @Column(name = "password", nullable = false, length = 255)
-    private String passwords;
-
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
     @Column(name = "createdAt", nullable = false)
     private LocalDateTime createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "roleId", nullable = false, referencedColumnName = "roleId")
-    private role role;
 
 }

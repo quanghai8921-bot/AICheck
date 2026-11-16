@@ -2,6 +2,7 @@ package com.nguyenquanghai.aicheck.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.UUID;
 
 @Entity
 @Table(name = "student")
@@ -12,6 +13,10 @@ import lombok.*;
 @Builder
 public class student {
     @Id
+    @Column(name = "studentId")
+    private UUID studentId;
+
+    @MapsId
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "studentId", referencedColumnName = "userId", nullable = false)
     private user user;

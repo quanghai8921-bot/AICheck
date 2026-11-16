@@ -1,5 +1,7 @@
 package com.nguyenquanghai.aicheck.entity;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.persistence.*;
@@ -24,5 +26,9 @@ public class subject {
 
     @Column(name = "subjectName", nullable = false, columnDefinition = "TEXT")
     private String subjectName;
+
+    @Builder.Default
+    @ManyToMany(mappedBy = "subject")
+    private Set<major> major = new HashSet<>();
 
 }

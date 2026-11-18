@@ -6,13 +6,13 @@ import lombok.*;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "user")
+@Table(name = "User")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class user {
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "userId", nullable = false)

@@ -1,5 +1,6 @@
 package com.nguyenquanghai.aicheck.dto.response.teacher;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import lombok.*;
@@ -7,10 +8,10 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class detailAnswerOfStudent {
-    private UUID answerId;
+@Builder
+public class ListBankQuestionResponse {
+    private UUID questionId;
     private String content;
-    private Integer wordCount;
-    private UUID reportId;
-
+    private String subjectCode;
+    private BigDecimal score;
 }

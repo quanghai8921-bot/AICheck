@@ -24,11 +24,11 @@ public class AuthController {
     }
 
     /**
-     * 1. Đăng nhập dành cho Sinh viên (Dùng Mã sinh viên và Mật khẩu)
+     * 1. Student Login (Use Student ID and Password)
      */
     @PostMapping("/student/login")
     public ResponseEntity<?> studentLogin(@RequestBody StudentLoginRequest request) {
-        // Gửi mã sinh viên và mật khẩu sang Keycloak kèm client ID và secret của sinh viên
+        // Send the student ID and password to Keycloak along with the student's client ID and secret
         TokenResponse token = keycloakAuthService.loginWithKeycloak(
                 request.getStudentCode(),
                 request.getPassword(),
@@ -46,11 +46,11 @@ public class AuthController {
     }
 
     /**
-     * 2. Đăng nhập dành cho Giáo viên (Dùng Mã giáo viên và Mật khẩu)
+     * 2. Teacher Login (Use Teacher ID and Password)
      */
     @PostMapping("/teacher/login")
     public ResponseEntity<?> teacherLogin(@RequestBody TeacherLoginRequest request) {
-        // Gửi mã giáo viên và mật khẩu sang Keycloak kèm client ID và secret của giáo viên
+        // Send the teacher's code and password to Keycloak along with the teacher's client ID and secret
         TokenResponse token = keycloakAuthService.loginWithKeycloak(
                 request.getTeacherCode(),
                 request.getPassword(),
@@ -70,6 +70,6 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> studentForgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         keycloakAuthService.sendResetPasswordEmail(request.getEmail());
-        return ResponseEntity.ok(new MessageResponse("Liên kết đặt lại mật khẩu đã được gửi tới email của bạn."));
+        return ResponseEntity.ok(new MessageResponse("The password reset link has been sent to your email."));
     }
 }

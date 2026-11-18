@@ -8,14 +8,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "subject")
+@Table(name = "Subject")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 
-public class subject {
+public class Subject {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "subjectId", nullable = false)
@@ -29,6 +29,6 @@ public class subject {
 
     @Builder.Default
     @ManyToMany(mappedBy = "subject")
-    private Set<major> major = new HashSet<>();
+    private Set<Major> major = new HashSet<>();
 
 }

@@ -8,14 +8,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "major")
+@Table(name = "Major")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 
-public class major {
+public class Major {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "majorId", nullable = false)
@@ -29,6 +29,6 @@ public class major {
 
     @Builder.Default
     @ManyToMany
-    @JoinTable(name = "subjectMajor", joinColumns = @JoinColumn(name = "majorId"), inverseJoinColumns = @JoinColumn(name = "subjectId"))
-    private Set<subject> subject = new HashSet<>();
+    @JoinTable(name = "SubjectMajor", joinColumns = @JoinColumn(name = "majorId"), inverseJoinColumns = @JoinColumn(name = "subjectId"))
+    private Set<Subject> subject = new HashSet<>();
 }

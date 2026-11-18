@@ -6,8 +6,8 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class listQuestion {
-    //Đã có id danh sách kì thi, sẽ biết danh sách câu hỏi của kì thi
+public class QuestionResponse {
+    private UUID examId;
     private UUID questionId;
     private String content;
 }

@@ -8,16 +8,14 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nguyenquanghai.aicheck.dto.request.student.SubmitAnswer;
+import com.nguyenquanghai.aicheck.common.enums.JoinStatus;
+import com.nguyenquanghai.aicheck.common.utils.SecurityUtils;
 import com.nguyenquanghai.aicheck.dto.request.student.VerifyPasscodeRequest;
 import com.nguyenquanghai.aicheck.dto.response.student.VerifyPasscodeResponse;
-import com.nguyenquanghai.aicheck.dto.response.student.listExam;
-import com.nguyenquanghai.aicheck.dto.response.student.listQuestion;
-import com.nguyenquanghai.aicheck.dto.response.student.listSubjectMajor;
-import com.nguyenquanghai.aicheck.dto.response.student.studentMajor;
+import com.nguyenquanghai.aicheck.dto.response.student.ListExamResponse;
+import com.nguyenquanghai.aicheck.dto.response.student.QuestionResponse;
 import com.nguyenquanghai.aicheck.repository.ExamRepository;
 import com.nguyenquanghai.aicheck.repository.HistoryRepository;
-import com.nguyenquanghai.aicheck.repository.MajorRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -32,42 +30,22 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final ExamRepository examRepository;
     private final HistoryRepository historyRepository;
-    private final MajorRepository majorRepository;
-    Qexam qexam = Qexam.exam;
-    Qsubject qsubject = Qsubject.subject;
-
-    @Transactional
-    public void submitExam(String studentId, SubmitAnswer request) {
-        LocalDateTime now = LocalDateTime.now();
-        exam currentExam = examRepository.findById(request.getExamId())
-                .orElseThrow(() -> new RuntimeException("Kì thi không tồn tại"));
-        if (now.isAfter(currentExam.getEndAt())) {
-            throw new RuntimeException("Đã hết thời gian nộp bài");
-        }
-
-        UUID historyId = null;
-        String status = "Submission";
-
-        history history = historyRepository.findById(historyId)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy lịch sử"));
-
-        // Kiểm tra tránh ghi đè lịch sử lần 2
-        if (status.equalsIgnoreCase(history.getStatusSubmission())) {
-            throw new IllegalStateException("Bạn đã nộp bài kiểm tra rồi");
-        }
-
-    }
+    QExam qexam = QExam.exam;
+    QSubject qsubject = QSubject.subject;
 
     @Transactional(readOnly = true)
-    public List<listExam> getActiveOrPrepareExam() {
+    public List<ListExamResponse> getActiveOrPrepareExam() {
 
         return examRepository.findExamOpenedOrPrepared();
-        
+
     }
 
     public VerifyPasscodeResponse verifyPasscode(VerifyPasscodeRequest request) {
-        exam exam = examRepository.findById(request.getExamId())
-                .orElseThrow(() -> new EntityNotFoundException("Kỳ thi không tồn tại"));
+        UUID currentStudentId = SecurityUtils.getCurrentUserId();
+        Student student = studentRepository.findById(currentStudentId)
+                .orElseThrow();
+        Exam exam = examRepository.findById(request.getExamId())
+                .orElseThrow(() -> new EntityNotFoundException("No exam found"));
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -75,41 +53,43 @@ public class StudentService {
         LocalDateTime startAt = exam.getStartAt();
         LocalDateTime endAt = exam.getEndAt();
 
-        // 1. Kiểm tra khung giờ mở đề
+        History history;
+
+        // 1. Check the exam opening hours
         if (startAt != null && now.isBefore(startAt)) {
-            throw new IllegalStateException("Kỳ thi chưa đến thời gian mở");
+            throw new IllegalStateException("The exam hasn't started yet");
         }
         if (endAt != null && now.isAfter(endAt)) {
-            throw new IllegalStateException("Kỳ thi đã kết thúc");
+            throw new IllegalStateException("The exam is over");
         }
 
         if (!passcode.equalsIgnoreCase(request.getPasscode().trim())) {
             return VerifyPasscodeResponse.builder()
                     .valid(false)
-                    .message("Mã passcode không chính xác")
+                    .message("The passcode is incorrect")
                     .build();
         }
+
+        history = History.builder()
+                .student(student)
+                .exam(exam)
+                .joinAt(LocalDateTime.now())
+                .statusJoin(JoinStatus.JOIN.name())
+                .build();
+
+        history = historyRepository.save(history);
+
         return VerifyPasscodeResponse.builder()
                 .valid(true)
-                .message("Xác thực thành công")
+                .message("Verification successful")
                 .examId(exam.getExamId())
                 .build();
     }
 
-    //Ngành đó có môn gì
+    // Exam questions and time
     @Transactional(readOnly = true)
-    public List<listSubjectMajor> getSubjectsByMajor(UUID majorId) {
-        return majorRepository.findSubjectByMajorId(majorId);
-    }
-
-    // Sinh viên đó học ngành gì
-    @Transactional(readOnly = true)
-    public studentMajor getStudentMajor(UUID studentId) {
-        return studentRepository.studentMajor(studentId);
-    }
-
-    //Kì thi đó có câu hỏi gì
-    public listQuestion getListQuestion(UUID examId){
+    public QuestionResponse getListQuestion(UUID examId) {
         return examRepository.questionForExam(examId);
     }
+
 }

@@ -1,21 +1,26 @@
-package com.nguyenquanghai.aicheck.dto.response.student;
+package com.nguyenquanghai.aicheck.dto.response.teacher;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 import lombok.*;
-import java.math.BigDecimal;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class historyExam {
+public class HistoryGradedExamResponse {
     private UUID historyId;
+
     private UUID examId;
     private String examTitle;
-    private String subjectName;
+
+    private UUID studentId;
+    private String studentCode;
+
     private BigDecimal score;
     private String feedback;
-    private String statusSubmission;
     private String statusGrading;
-
 }
+// History of teacher-graded tests

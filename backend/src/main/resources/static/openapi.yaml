@@ -145,14 +145,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VerifyPasscodeRequest'
+              $ref: '#/components/schemas/JoinExamRequest'
       responses:
         '200':
           description: Mã phòng hợp lệ, sinh viên bắt đầu làm bài
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VerifyPasscodeResponse'
+                $ref: '#/components/schemas/JoinExamResponse'
         '400':
           description: Sai mã phòng thi (passcode) hoặc ca thi chưa mở / đã đóng
         '401':
@@ -233,70 +233,6 @@ paths:
           description: Không có quyền nộp bài cho ca thi này
         '404':
           description: Không tìm thấy kỳ thi
-
-  /api/v1/student/{studentId}/major:
-    get:
-      tags:
-        - Student - Major
-      summary: Lấy thông tin chuyên ngành của sinh viên
-      description: Trả về thông tin chuyên ngành mà sinh viên đang theo học (bao gồm ID chuyên ngành, mã chuyên ngành).
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: studentId
-          in: path
-          required: true
-          description: ID của sinh viên (UUID)
-          schema:
-            type: string
-            format: uuid
-            example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-      responses:
-        '200':
-          description: Lấy thông tin chuyên ngành thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StudentMajorResponse'
-        '401':
-          description: Chưa đăng nhập hoặc Token hết hạn
-        '403':
-          description: Không có quyền truy cập
-        '404':
-          description: Không tìm thấy sinh viên
-
-  /api/v1/student/majors/{majorId}/subjects:
-    get:
-      tags:
-        - Student - Major
-      summary: Lấy danh sách môn học theo chuyên ngành
-      description: Trả về danh sách tất cả các môn học thuộc chuyên ngành cụ thể theo ID chuyên ngành (UUID).
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: majorId
-          in: path
-          required: true
-          description: ID của chuyên ngành (UUID)
-          schema:
-            type: string
-            format: uuid
-            example: "8da95f64-5717-4562-b3fc-2c963f66afb7"
-      responses:
-        '200':
-          description: Lấy danh sách môn học thành công
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SubjectMajorResponse'
-        '401':
-          description: Chưa đăng nhập hoặc Token hết hạn
-        '403':
-          description: Không có quyền truy cập
-        '404':
-          description: Không tìm thấy chuyên ngành
 
   # =========================================================================
   # 5. LỊCH SỬ THI DÀNH CHO SINH VIÊN (STUDENT EXAM HISTORY)
@@ -1118,48 +1054,48 @@ components:
           format: date-time
           example: "2024-10-15T08:30:00"
 
-    # 17. Sinh viên nhập mã phòng thi
-    VerifyPasscodeRequest:
+    # 17. Sinh viên nhập mã phòng thi để tham gia
+    JoinExamRequest:
       type: object
       required:
-        - examId
         - passcode
       properties:
         examId:
           type: string
           format: uuid
           example: "f1a33d3d-a83f-4d24-b742-8de275b14a0e"
-          description: ID của kỳ thi
+          description: ID của kỳ thi (tùy chọn nếu đã có trên path)
         passcode:
           type: string
           example: "123456"
           description: Mã passcode phòng thi (6 ký tự)
 
-    # 18. Phản hồi xác thực mã phòng thi thành công
-    VerifyPasscodeResponse:
+    # 18. Phản hồi tham gia ca thi thành công
+    JoinExamResponse:
       type: object
       properties:
         historyId:
           type: string
           format: uuid
           example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
-          description: ID phiên làm bài của sinh viên
+          description: ID phiên làm bài của sinh viên trong bảng History
         examId:
           type: string
           format: uuid
           example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
-        joinedAt:
+        joinAt:
           type: string
           format: date-time
           example: "2024-10-18T09:05:00"
-          description: Thời điểm sinh viên chính thức vào phòng thi
+          description: Thời điểm sinh viên chính thức vào phòng thi (khớp cột joinAt trong History)
+        statusJoin:
+          type: string
+          example: "JOINED"
+          description: Trạng thái tham gia (khớp cột statusJoin trong History)
         durationMinutes:
           type: integer
           example: 90
           description: Thời gian làm bài tối đa (phút)
-        statusJoin:
-          type: string
-          example: "JOINED"
         message:
           type: string
           example: "Mã phòng thi hợp lệ. Chúc bạn làm bài tốt!"
@@ -1336,48 +1272,3 @@ components:
           type: string
           example: "Chấm điểm bài kiểm tra thành công."
 
-    # 22. Thông tin chuyên ngành của sinh viên
-    StudentMajorResponse:
-      type: object
-      properties:
-        studentId:
-          type: string
-          format: uuid
-          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-          description: ID của sinh viên
-        studentCode:
-          type: string
-          example: "SV2026001"
-          description: Mã sinh viên
-        majorId:
-          type: string
-          format: uuid
-          example: "8da95f64-5717-4562-b3fc-2c963f66afb7"
-          description: ID của chuyên ngành
-        majorCode:
-          type: string
-          example: "IT"
-          description: Mã chuyên ngành
-
-    # 23. Danh sách môn học thuộc chuyên ngành
-    SubjectMajorResponse:
-      type: object
-      properties:
-        majorId:
-          type: string
-          format: uuid
-          example: "8da95f64-5717-4562-b3fc-2c963f66afb7"
-          description: ID của chuyên ngành
-        subjectId:
-          type: string
-          format: uuid
-          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-          description: ID của môn học
-        subjectCode:
-          type: string
-          example: "CS101"
-          description: Mã môn học
-        subjectName:
-          type: string
-          example: "Lập trình hướng đối tượng"
-          description: Tên môn học

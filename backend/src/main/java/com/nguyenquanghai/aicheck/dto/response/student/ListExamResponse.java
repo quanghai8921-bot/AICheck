@@ -1,4 +1,4 @@
-package com.nguyenquanghai.aicheck.dto.response.teacher;
+package com.nguyenquanghai.aicheck.dto.response.student;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -8,16 +8,17 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class listExamCreated {
+@Builder
+public class ListExamResponse {
+
     private UUID examId;
     private String title;
+    private String type;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
-    private LocalDateTime createdAt;
     private String status;
-    private String type;
-    private String passcode;
+    private UUID subjectId;
     private String subjectCode;
-    // Hỗ trợ xác định id câu hỏi của kì thi đó
-    private String questionId;
+    private String subjectName;
 }
+// List of tests currently open / upcoming

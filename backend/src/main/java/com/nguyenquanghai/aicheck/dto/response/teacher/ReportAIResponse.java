@@ -6,8 +6,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class report {
-    // Lồng từ phong cách viết
+public class ReportAIResponse {
     private UUID stylometryId;
     private String vocabulary;
     private String grammar;

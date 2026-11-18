@@ -4,13 +4,17 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
-import com.nguyenquanghai.aicheck.entity.Qexam;
-import com.nguyenquanghai.aicheck.entity.Qhistory;
-import com.nguyenquanghai.aicheck.entity.QreportAI;
-import com.nguyenquanghai.aicheck.entity.Qstudent;
-import com.nguyenquanghai.aicheck.entity.Qsubject;
-import com.nguyenquanghai.aicheck.entity.Quser;
+import com.nguyenquanghai.aicheck.dto.response.student.HistoryExamResponse;
+import com.nguyenquanghai.aicheck.dto.response.teacher.HistoryGradedExamResponse;
+import com.nguyenquanghai.aicheck.dto.response.teacher.ReceiveExamOfStudentResponse;
+import com.nguyenquanghai.aicheck.entity.QExam;
+import com.nguyenquanghai.aicheck.entity.QHistory;
+import com.nguyenquanghai.aicheck.entity.QReportAI;
+import com.nguyenquanghai.aicheck.entity.QStudent;
+import com.nguyenquanghai.aicheck.entity.QSubject;
+import com.nguyenquanghai.aicheck.entity.QUser;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import lombok.RequiredArgsConstructor;
@@ -21,82 +25,78 @@ import com.nguyenquanghai.aicheck.repository.custom.HistoryRepositoryCustom;
 public class HistoryRepositoryImpl implements HistoryRepositoryCustom {
         private final JPAQueryFactory queryFactory;
 
-        private static final Qhistory history = Qhistory.history;
-        private static final Qexam exam = Qexam.exam;
-        private static final Qstudent student = Qstudent.student;
-        private static final Quser user = Quser.user;
-        private static final QreportAI reportAI = QreportAI.reportAI;
-        private static final Qsubject subject = Qsubject.subject;
+        private static final QHistory history = QHistory.history;
+        private static final QExam exam = QExam.exam;
+        private static final QStudent student = QStudent.student;
+        private static final QUser user = QUser.user;
+        private static final QReportAI reportAI = QReportAI.reportAI;
+        private static final QSubject subject = QSubject.subject;
 
-        // Giáo viên nhận bài của sinh viên nộp 
+        // Giáo viên nhận bài của sinh viên nộp
         @Override
-        public List<Tuple> findStudentSubmissions(UUID examId) {
+        public List<ReceiveExamOfStudentResponse> findStudentSubmissions(UUID examId) {
                 return queryFactory
-                                .select(
+                                .select(Projections.constructor(
+                                                ReceiveExamOfStudentResponse.class,
                                                 history.historyId,
                                                 student.studentId,
                                                 student.studentCode,
                                                 history.statusSubmission,
                                                 history.submissionAt,
-                                                reportAI.statusFlag,
-                                                reportAI.reportId
-                                )
+                                                reportAI.reportId,
+                                                reportAI.statusFlag))
                                 .from(history)
                                 .innerJoin(history.student, student)
                                 .where(
-                                        history.exam.examId.eq(examId)
-                                )
+                                                history.exam.examId.eq(examId))
                                 .fetch();
         }
 
         // Lịch sử giáo viên xem những bài kiểm tra mà mình đã chấm
         @Override
-        public List<Tuple> findExamGradedByTeacher(UUID historyId, UUID teacherId) {
+        public List<HistoryGradedExamResponse> findExamGradedByTeacher(UUID historyId, UUID teacherId) {
 
                 return queryFactory
-                                .select(
+                                .select(Projections.constructor(
+                                                HistoryGradedExamResponse.class,
                                                 history.historyId,
                                                 exam.examId,
                                                 exam.title,
+                                                student.studentId,
                                                 student.studentCode,
-                                                user.fullName,
                                                 history.score,
                                                 history.feedback,
-                                                history.gradeAt
-                                        )
+                                                history.statusGrading))
+
                                 .from(history)
                                 .innerJoin(history.exam, exam)
                                 .innerJoin(history.student, student)
                                 .innerJoin(student.user, user)
                                 .where(
-                                        history.historyId.eq(historyId),
-                                        history.teacher.teacherId.eq(teacherId)
-                                )
+                                                history.historyId.eq(historyId),
+                                                history.teacher.teacherId.eq(teacherId))
                                 .fetch();
         }
 
         // Lịch sử sinh viên xem mình đã làm bài kiểm tra nào
         @Override
-        public List<Tuple> findStudentExamHistory(UUID historyId, UUID studentId) {
-
+        public List<HistoryExamResponse> findStudentExamHistory(UUID studentId) {
                 return queryFactory
-                                .select(
+                                .select(Projections.constructor(
+                                                HistoryExamResponse.class,
                                                 history.historyId,
                                                 exam.examId,
                                                 exam.title,
-                                                exam.subjects.subjectName,
+                                                subject.subjectName,
                                                 history.score,
                                                 history.feedback,
                                                 history.statusSubmission,
-                                                history.statusGrading
-                                        )
+                                                history.statusGrading))
                                 .from(history)
                                 .innerJoin(history.exam, exam)
-                                .leftJoin(exam.subjects, subject)
-                                .where(
-                                        history.historyId.eq(historyId),
-                                        history.student.studentId.eq(studentId)
-                                )
+                                .leftJoin(exam.subject, subject)
+                                .where(history.student.studentId.eq(studentId))
+                                .orderBy(history.submissionAt.desc())
                                 .fetch();
         }
 

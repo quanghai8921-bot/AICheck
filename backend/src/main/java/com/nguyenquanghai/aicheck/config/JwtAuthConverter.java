@@ -22,52 +22,22 @@ import java.util.stream.Stream;
 public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private final JwtGrantedAuthoritiesConverter defaultConverter = new JwtGrantedAuthoritiesConverter();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
-        // ==========================================
-        // 1. IN THÔNG TIN JWT ĐÃ GIẢI MÃ RA CONSOLE
-        // ==========================================
-        printJwtInfo(jwt);
 
-        // 2. Trích xuất quyền hạn (Authorities & Roles)
+        // 2. Extracting Permissions (Authorities & Roles)
         Set<GrantedAuthority> authorities = Stream.concat(
                 defaultConverter.convert(jwt).stream(),
                 extractRealmRoles(jwt).stream()).collect(Collectors.toSet());
 
-        // In các quyền sau khi Spring convert
-        System.out.println(">> [SPRING SECURITY AUTHORITIES]: " + authorities);
-        System.out.println("============================================================\n");
-
-        // 3. Lấy tên user đại diện (Principal)
+        // 3. Get the user's name (Principal)
         String principalClaimName = jwt.getClaimAsString("preferred_username");
         if (principalClaimName == null) {
             principalClaimName = jwt.getClaimAsString(JwtClaimNames.SUB);
         }
 
         return new JwtAuthenticationToken(jwt, authorities, principalClaimName);
-    }
-
-    private void printJwtInfo(Jwt jwt) {
-        System.out.println("\n================ [KEYCLOAK JWT DECODED] ================");
-        System.out.println("Token ID (jti)   : " + jwt.getId());
-        System.out.println("Subject (UUID)   : " + jwt.getSubject());
-        System.out.println("Username         : " + jwt.getClaimAsString("preferred_username"));
-        System.out.println("Email            : " + jwt.getClaimAsString("email"));
-        System.out.println("Issuer (iss)     : " + jwt.getIssuer());
-        System.out.println("Expires At (exp) : " + jwt.getExpiresAt());
-
-        System.out.println("\n--- Toàn bộ Claims (Payload JSON) ---");
-        try {
-            // In đẹp định dạng JSON
-            String prettyJson = objectMapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(jwt.getClaims());
-            System.out.println(prettyJson);
-        } catch (Exception e) {
-            System.out.println(jwt.getClaims());
-        }
-        System.out.println("-------------------------------------");
     }
 
     @SuppressWarnings("unchecked")

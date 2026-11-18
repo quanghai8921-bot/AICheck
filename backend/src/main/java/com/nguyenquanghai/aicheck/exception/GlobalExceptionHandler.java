@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(status.value())
                 .error(status.getReasonPhrase())
-                .message("Mã đăng nhập hoặc mật khẩu không chính xác.")
+                .message("Invalid credentials. Please verify your username and password.")
                 .path(request.getRequestURI())
                 .build();
 

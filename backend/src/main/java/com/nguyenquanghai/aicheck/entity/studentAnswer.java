@@ -6,21 +6,22 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "studentAnswer")
+@Table(name = "StudentAnswer")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 
-public class studentAnswer {
+public class StudentAnswer {
     @Id
     @Column(name = "answerId", nullable = false)
-    private UUID answerId; // 1. Khai báo rõ ràng ID là UUID
-    @MapsId // 2. Báo cho JPA biết answerId sẽ lấy giá trị từ historyId
+    private UUID answerId; 
+
+    @MapsId 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "answerId", referencedColumnName = "historyId", nullable = false)
-    private history history;
+    private History history;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
@@ -30,6 +31,6 @@ public class studentAnswer {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reportId", referencedColumnName = "reportId", nullable = true, unique = true)
-    private reportAI reportAI;
+    private ReportAI reportAI;
 
 }

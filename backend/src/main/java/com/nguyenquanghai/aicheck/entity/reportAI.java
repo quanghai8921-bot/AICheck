@@ -6,14 +6,14 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "reportAI")
+@Table(name = "ReportAI")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 
-public class reportAI {
+public class ReportAI {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "reportId", nullable = false)
@@ -21,7 +21,7 @@ public class reportAI {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "stylometryId", nullable = false, unique = true)
-    private stylometry stylometry;
+    private Stylometry stylometry;
 
     @Column(name = "perplexity", nullable = false, columnDefinition = "TEXT")
     private String perplexity;

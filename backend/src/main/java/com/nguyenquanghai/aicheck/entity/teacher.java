@@ -5,13 +5,13 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "teacher")
+@Table(name = "Teacher")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class teacher {
+public class Teacher {
     @Id
     @Column(name = "teacherId")
     private UUID teacherId;
@@ -19,14 +19,14 @@ public class teacher {
     @MapsId
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacherId", referencedColumnName = "userId", nullable = false)
-    private user user;
+    private User user;
 
     @Column(name = "teacherCode", nullable = false, length = 10, unique = true)
     private String teacherCode;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subjectId", referencedColumnName = "subjectId", nullable = false)
-    private subject subject;
+    private Subject subject;
 
     @Column(name = "experience", nullable = false)
     private Integer experience;

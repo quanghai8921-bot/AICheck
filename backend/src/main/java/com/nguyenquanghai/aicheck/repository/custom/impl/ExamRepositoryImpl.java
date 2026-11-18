@@ -5,10 +5,13 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Repository;
 
-import com.nguyenquanghai.aicheck.dto.response.student.listExam;
-import com.nguyenquanghai.aicheck.dto.response.student.listQuestion;
-import com.nguyenquanghai.aicheck.entity.QbankQuestion;
-import com.nguyenquanghai.aicheck.entity.Qexam;
+import com.nguyenquanghai.aicheck.common.enums.ExamStatus;
+import com.nguyenquanghai.aicheck.dto.response.student.ListExamResponse;
+import com.nguyenquanghai.aicheck.dto.response.student.QuestionResponse;
+import com.nguyenquanghai.aicheck.dto.response.teacher.ListExamCreatedResponse;
+import com.nguyenquanghai.aicheck.entity.QBankQuestion;
+import com.nguyenquanghai.aicheck.entity.QExam;
+import com.nguyenquanghai.aicheck.entity.QSubject;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -21,43 +24,57 @@ import com.nguyenquanghai.aicheck.repository.custom.ExamRepositoryCustom;
 public class ExamRepositoryImpl implements ExamRepositoryCustom {
         private final JPAQueryFactory queryFactory;
 
-        private static final Qexam exam = Qexam.exam;
-        private static final QbankQuestion bankQuestion = QbankQuestion.bankQuestion;
+        private static final QExam exam = QExam.exam;
+        private static final QBankQuestion bankQuestion = QBankQuestion.bankQuestion;
+        private static final QSubject subject = QSubject.subject;
 
-        // Lịch sử giáo viên đó tạo bài kiểm tra nào
-        public List<Tuple> findExamCreateByTeacherCode(UUID examId) {
+        // Which tests did that teacher create history for?
+        public List<ListExamCreatedResponse> findExamCreateByTeacherCode(UUID examId) {
 
                 return queryFactory
-                                .select(exam.teacher.teacherCode, exam.createdAt)
+                                .select(Projections.constructor(
+                                                ListExamCreatedResponse.class,
+                                                exam.examId,
+                                                exam.title,
+                                                exam.startAt,
+                                                exam.endAt,
+                                                exam.createdAt,
+                                                exam.status,
+                                                exam.type,
+                                                exam.passcode))
                                 .from(exam)
                                 .where(
                                                 exam.examId.eq(examId))
                                 .fetch();
         }
 
-        // Kì thi đang mở hoặc sắp mở theo mã môn
-        public List<listExam> findExamOpenedOrPrepared() {
+        // Which exams are currently open or about to open by status
+        public List<ListExamResponse> findExamOpenedOrPrepared() {
                 return queryFactory
                                 .select(Projections.constructor(
-                                                listExam.class,
+                                                ListExamResponse.class,
                                                 exam.examId,
                                                 exam.title,
                                                 exam.type,
                                                 exam.startAt,
                                                 exam.endAt,
-                                                exam.status))
+                                                exam.status,
+                                                subject.subjectId,
+                                                subject.subjectCode,
+                                                subject.subjectName))
                                 .from(exam)
+                                .innerJoin(exam.subject, subject)
                                 .where(
-                                                exam.status.equalsIgnoreCase("Actived")
-                                                                .or(exam.status.equalsIgnoreCase("Prepare")))
+                                                exam.status.in(ExamStatus.OPEN.name(),
+                                                                ExamStatus.PREPARE.name()))
                                 .fetch();
         }
 
-        // Kì thi đó có câu hỏi gì
-        public listQuestion questionForExam(UUID examId) {
+        // What questions were on that exam?
+        public QuestionResponse questionForExam(UUID examId) {
                 return queryFactory
                                 .select(Projections.constructor(
-                                                listQuestion.class,
+                                                QuestionResponse.class,
                                                 exam.examId,
                                                 bankQuestion.questionId,
                                                 bankQuestion.content))

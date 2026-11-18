@@ -7,14 +7,14 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "exam")
+@Table(name = "Exam")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 
-public class exam {
+public class Exam {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "examId", nullable = false)
@@ -31,7 +31,7 @@ public class exam {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "createdBy", referencedColumnName = "teacherId", nullable = false)
-    private teacher teacher;
+    private Teacher teacher;
 
     @Column(name = "createdAt", nullable = false)
     private LocalDateTime createdAt;
@@ -47,10 +47,10 @@ public class exam {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "questionId", referencedColumnName = "questionId", nullable = false)
-    private bankQuestion bankQuestion;
+    private BankQuestion bankQuestion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subjectId", referencedColumnName = "subjectId", nullable = false)
-    private subject subjects;
+    private Subject subject;
 
 }

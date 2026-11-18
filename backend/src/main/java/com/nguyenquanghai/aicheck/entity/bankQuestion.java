@@ -6,14 +6,14 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "bankQuestion")
+@Table(name = "BankQuestion")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 
-public class bankQuestion {
+public class BankQuestion {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "questionId", nullable = false)
@@ -24,6 +24,6 @@ public class bankQuestion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subjectId", referencedColumnName = "subjectId", nullable = false)
-    private subject subject;
+    private Subject subject;
 
 }

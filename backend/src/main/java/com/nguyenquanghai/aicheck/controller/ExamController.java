@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.nguyenquanghai.aicheck.dto.request.student.VerifyPasscodeRequest;
 import com.nguyenquanghai.aicheck.dto.response.student.VerifyPasscodeResponse;
-import com.nguyenquanghai.aicheck.dto.response.student.listQuestion;
+import com.nguyenquanghai.aicheck.dto.response.student.QuestionResponse;
 import com.nguyenquanghai.aicheck.services.StudentService;
 
 import jakarta.validation.Valid;
@@ -28,7 +28,7 @@ public class ExamController {
     private final StudentService studentService;
 
     /**
-     * Sinh viên nhập passcode để vào ca thi
+     * Students enter the passcode to join the exam session
      */
     @PostMapping("/{examId}/join")
     @PreAuthorize("hasRole('STUDENT')")
@@ -44,12 +44,12 @@ public class ExamController {
         return ResponseEntity.ok(response);
     }
 
-    // Kì thi đó có câu hỏi gì
+    // What questions were on that exam?
     @GetMapping("/{examId}/questions")
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<listQuestion> getListQuestion(
+    public ResponseEntity<QuestionResponse> getListQuestion(
             @PathVariable UUID examId) {
-        listQuestion listQuestion = studentService.getListQuestion(examId);
+        QuestionResponse listQuestion = studentService.getListQuestion(examId);
         return ResponseEntity.ok(listQuestion);
     }
 

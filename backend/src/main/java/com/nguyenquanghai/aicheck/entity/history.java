@@ -8,14 +8,14 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "history")
+@Table(name = "History")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 
-public class history {
+public class History {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "historyId", nullable = false)
@@ -23,7 +23,7 @@ public class history {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "studentId", referencedColumnName = "studentId", nullable = false)
-    private student student;
+    private Student student;
 
     @Column(name = "feedback", columnDefinition = "TEXT", nullable = true)
     private String feedback;
@@ -45,7 +45,7 @@ public class history {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gradeBy", referencedColumnName = "teacherId", nullable = true)
-    private teacher teacher;
+    private Teacher teacher;
 
     @Column(name = "statusJoin", nullable = false, length = 20)
     private String statusJoin;
@@ -55,6 +55,6 @@ public class history {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "examId", referencedColumnName = "examId", nullable = false)
-    private exam exam;
+    private Exam exam;
 
 }

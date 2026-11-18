@@ -1,13 +1,14 @@
 package com.nguyenquanghai.aicheck.security.service;
 
 import com.nguyenquanghai.aicheck.dto.response.TokenResponse;
+
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -20,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class KeycloakAuthService {
 
     @Value("${keycloak.auth-server-url}")
@@ -42,6 +44,12 @@ public class KeycloakAuthService {
     @Value("${keycloak.client-secret-teacher:}")
     private String clientSecretTeacher;
 
+    @Value("${keycloak.admin.username}")
+    private String adminUsername;
+
+    @Value("${keycloak.admin.password}")
+    private String adminPassword;
+
     public String getClientIdStudent() {
         return clientIdStudent;
     }
@@ -53,9 +61,12 @@ public class KeycloakAuthService {
     public String getClientSecretStudent() {
         return clientSecretStudent;
     }
+
     public String getClientSecretTeacher() {
         return clientSecretTeacher;
     }
+
+    private final Keycloak adminKeycloak;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -73,7 +84,6 @@ public class KeycloakAuthService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        // Đóng gói request dạng x-www-form-urlencoded theo chuẩn OAuth2
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "password");
         body.add("client_id", clientId);
@@ -89,46 +99,31 @@ public class KeycloakAuthService {
             ResponseEntity<TokenResponse> response = restTemplate.postForEntity(tokenUrl, request, TokenResponse.class);
             return response.getBody();
         } catch (HttpStatusCodeException e) {
-            log.error("Keycloak trả về lỗi HTTP {} từ {}: {}", e.getStatusCode(), tokenUrl, e.getResponseBodyAsString());
+            log.error("Keycloak returns an HTTP error {} từ {}: {}", e.getStatusCode(), tokenUrl,
+                    e.getResponseBodyAsString());
             throw e;
         } catch (ResourceAccessException e) {
-            log.error("Không thể kết nối đến máy chủ Keycloak tại [{}]. Hãy kiểm tra xem Keycloak đã khởi động thành công chưa: {}", tokenUrl, e.getMessage());
-            throw new RuntimeException("Không thể kết nối đến máy chủ xác thực Keycloak!");
-        } catch (Exception e) {
-            log.error("Lỗi khi gọi Keycloak Token Endpoint: ", e);
-            throw new RuntimeException("Lỗi hệ thống trong quá trình xác thực!");
-        }
+            log.error(
+                    "Cannot connect to the Keycloak server at [{}]. Please check if Keycloak has started successfully: {}",
+                    tokenUrl, e.getMessage());
+            throw new RuntimeException("Cannot connect to the Keycloak authentication server!");
+        } 
     }
 
     public void sendResetPasswordEmail(String email) {
-        // 1. Khởi tạo Keycloak Admin Client để thực hiện quyền quản trị
-        Keycloak adminKeycloak = KeycloakBuilder.builder()
-                .serverUrl(serverUrl)
-                .realm("master")
-                .clientId("admin-cli")
-                .username("admin")      // Tài khoản admin của Keycloak (trong docker-compose)
-                .password("admin")      // Mật khẩu admin của Keycloak
-                .build();
-        try {
-            // 2. Tìm người dùng theo Email trong Realm "aicheck"
-            List<UserRepresentation> users = adminKeycloak.realm(realm)
-                    .users()
-                    .searchByEmail(email, true);
-            if (users == null || users.isEmpty()) {
-                throw new RuntimeException("Không tìm thấy tài khoản gắn với email: " + email);
-            }
-            String userId = users.get(0).getId();
-            // 3. Yêu cầu Keycloak gửi email kèm liên kết UPDATE_PASSWORD
-            adminKeycloak.realm(realm)
-                    .users()
-                    .get(userId)
-                    .executeActionsEmail(Collections.singletonList("UPDATE_PASSWORD"));
-            log.info("Đã gửi email đặt lại mật khẩu cho user: {}", email);
-        } catch (Exception e) {
-            log.error("Lỗi khi gửi email reset password qua Keycloak: ", e);
-            throw new RuntimeException(e.getMessage());
-        } finally {
-            adminKeycloak.close();
+        // Find user by Email in Realm "aicheck"
+        List<UserRepresentation> users = adminKeycloak.realm(realm)
+                .users()
+                .searchByEmail(email, true);
+        if (users == null || users.isEmpty()) {
+            throw new RuntimeException("No account found associated with the email: " + email);
         }
+        String userId = users.get(0).getId();
+        // Request Keycloak to send an email with the UPDATE_PASSWORD link
+        adminKeycloak.realm(realm)
+                .users()
+                .get(userId)
+                .executeActionsEmail(Collections.singletonList("UPDATE_PASSWORD"));
+        log.info("Password reset email sent to user: {}", email);
     }
 }

@@ -9,14 +9,14 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "stylometry")
+@Table(name = "Stylometry")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 
-public class stylometry {
+public class Stylometry {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "stylometryId", nullable = false)

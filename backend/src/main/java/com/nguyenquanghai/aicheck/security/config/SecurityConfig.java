@@ -20,21 +20,22 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-
-    // THỨ TỰ 1: BỘ LỌC CHÍNH (SecurityFilterChain)
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        // 0. Bật cấu hình CORS (Cho phép Frontend gọi vào)
+        // 0. Turn on CORS (Allow Frontend to call)
         http.cors(
                 new Customizer<org.springframework.security.config.annotation.web.configurers.CorsConfigurer<HttpSecurity>>() {
                     @Override
@@ -44,7 +45,7 @@ public class SecurityConfig {
                     }
                 });
 
-        // 1. Tắt CSRF
+        // 1. Turn off CSRF
         http.csrf(new Customizer<CsrfConfigurer<HttpSecurity>>() {
             @Override
             public void customize(CsrfConfigurer<HttpSecurity> csrf) {
@@ -52,7 +53,7 @@ public class SecurityConfig {
             }
         });
 
-        // 2. Tắt Session (Vì hệ thống dùng Token, không lưu session trên server)
+        // 2. Turn off Session (Because the system uses Token)
         http.sessionManagement(new Customizer<SessionManagementConfigurer<HttpSecurity>>() {
             @Override
             public void customize(SessionManagementConfigurer<HttpSecurity> session) {
@@ -60,10 +61,10 @@ public class SecurityConfig {
             }
         });
 
-        // 3. Phân quyền đường dẫn URL
+        // 3. URL path permissions
         http.authorizeHttpRequests(auth -> auth
 
-                // API đăng nhập không cần xác thực
+                // API log in without authentication
                 .requestMatchers(
                         "/api/auth/**",
                         "/api/v1/auth/**",
@@ -78,25 +79,28 @@ public class SecurityConfig {
                         "/openapi.yaml")
                 .permitAll()
 
-                // API dành riêng cho Teacher
-                .requestMatchers("/api/teacher/**")
+                // API for Teacher
+                .requestMatchers("/api/v1/teacher/**")
                 .hasAnyRole("TEACHER")
 
-                // API dành riêng cho Student
-                .requestMatchers("/api/student/**")
+                // API for Student
+                .requestMatchers("/api/v1/student/**")
                 .hasAnyRole("STUDENT")
 
-                // Các API khác yêu cầu đăng nhập
+                .requestMatchers("/api/v1/internal/**")
+                .hasRole("INTERNAL_SERVICE")
+
+                // API other request login
                 .anyRequest().authenticated());
 
-        // 4. Bật kiểm tra Token JWT của Keycloak
+        // 4. Enable JWT Token check in Keycloak
         http.oauth2ResourceServer(new Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>>() {
             @Override
             public void customize(OAuth2ResourceServerConfigurer<HttpSecurity> oauth2) {
                 oauth2.jwt(new Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>.JwtConfigurer>() {
                     @Override
                     public void customize(OAuth2ResourceServerConfigurer<HttpSecurity>.JwtConfigurer jwt) {
-                        // Gắn bộ bóc tách Role ở Thứ tự 2 vào đây
+                        // Attach the Role extraction set in the 2nd order here
                         jwt.jwtAuthenticationConverter(jwtAuthenticationConverter());
                     }
                 });
@@ -106,7 +110,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // THỨ TỰ 2: BỘ ĐỌC ROLE TỪ TOKEN KEYCLOAK
+    // 2: READ ROLE FROM KEYCLOAK TOKEN
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
@@ -115,18 +119,9 @@ public class SecurityConfig {
             @Override
             @SuppressWarnings("unchecked")
             public Collection<GrantedAuthority> convert(Jwt jwt) {
-                // =================================================================
-                // IN THÔNG TIN JWT ĐÃ GIẢI MÃ RA CONSOLE
-                // =================================================================
-                System.out.println("\n================ [RESOURCE SERVER - JWT DECODED] ================");
-                System.out.println("Username (preferred_username) : " + jwt.getClaimAsString("preferred_username"));
-                System.out.println("Subject (Keycloak User ID)   : " + jwt.getSubject());
-                System.out.println("All Claims                   : " + jwt.getClaims());
-                // =================================================================
-
                 List<GrantedAuthority> authorities = new ArrayList<>();
 
-                // Đọc phần "realm_access" trong Token do Keycloak cấp
+                // Read the 'realm_access' part in the Token issued by Keycloak
                 Map<String, Object> realmAccess = jwt.getClaim("realm_access");
                 if (realmAccess != null && realmAccess.containsKey("roles")) {
                     List<String> roles = (List<String>) realmAccess.get("roles");
@@ -136,8 +131,12 @@ public class SecurityConfig {
                     }
                 }
 
-                System.out.println("Authorities được gán         : " + authorities);
-                System.out.println("=================================================================\n");
+                if (log.isDebugEnabled()) {
+                    log.debug("JWT Decoded - Subject: {}, Username: {}, Authorities: {}",
+                            jwt.getSubject(),
+                            jwt.getClaimAsString("preferred_username"),
+                            authorities);
+                }
 
                 return authorities;
             }
@@ -146,13 +145,13 @@ public class SecurityConfig {
         return converter;
     }
 
-    // THỨ TỰ 3: MỞ CORS (Để Frontend của bạn gọi được vào Backend)
+    // 3: Open CORS 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
         List<String> origins = new ArrayList<>();
-        origins.add("http://localhost:3000"); // Link Frontend Next.js / React
+        origins.add("http://localhost:3000"); // Link Frontend 
         config.setAllowedOrigins(origins);
 
         List<String> methods = new ArrayList<>();
@@ -164,7 +163,7 @@ public class SecurityConfig {
         config.setAllowedMethods(methods);
 
         List<String> headers = new ArrayList<>();
-        headers.add("*"); // Cho phép mọi header (bao gồm Authorization: Bearer ...)
+        headers.add("*"); 
         config.setAllowedHeaders(headers);
 
         config.setAllowCredentials(true);

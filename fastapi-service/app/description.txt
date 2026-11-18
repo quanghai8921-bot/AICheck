@@ -1,0 +1,54 @@
+flowchart LR
+ subgraph Client_Layer["Người Dùng"]
+    direction TB
+        SV["Sinh viên: Nộp bài"]
+        GV["Giáo viên: Xem báo cáo"]
+  end
+ subgraph Backend_Spring["Spring Boot Backend & DB"]
+    direction TB
+        API_Receive["Spring Controller: Tiếp nhận bài"]
+        CheckHistory{"Kiểm tra lịch sử:<br>Bài đầu hay đã có bài?"}
+        Spring_SaveAPI["Spring Internal API:<br>Lưu mốc phân tích &amp; Báo cáo"]
+        DB_Storage[("Database<br>Table A: Lịch sử đặc trưng<br>Table B: Báo cáo kết quả")]
+  end
+ subgraph Message_Broker["Hàng Đợi"]
+        Queue[("RabbitMQ Task Queue<br><i>(Kèm cờ is_first_submission)</i>")]
+  end
+ subgraph Python_LangChain["Python Worker (LangChain Engine)"]
+    direction TB
+        A1["Agent 1 (LangChain):<br>1. Phân tích văn phong bài làm<br>2. Quét mẫu bán thành phẩm AI<br>3. Xuất JSON đặc trưng"]
+        RouteNode{"is_first_submission?"}
+        FetchHist["Gọi Spring API:<br>Lấy lịch sử mới nhất &amp; trước đó"]
+        A2["Agent 2 (LangChain):<br>So sánh 2 mốc lịch sử<br>&amp; Đưa ra nhận định cuối cùng"]
+  end
+    SV --> API_Receive
+    API_Receive --> CheckHistory
+    CheckHistory -- Gắn cờ (is_first) --> Queue
+    Queue --> A1
+    Spring_SaveAPI --> DB_Storage
+    A1 --> RouteNode
+    RouteNode -- ĐÚNG (Bài đầu tiên) --> Spring_SaveAPI
+    note1["Kết quả Agent 1 được dùng<br>làm báo cáo hoàn chỉnh"] -.-> RouteNode
+    RouteNode -- SAI (Đã có bài cũ) --> FetchHist
+    DB_Storage -. Đọc 2 mốc lịch sử gần nhất .-> FetchHist
+    FetchHist --> A2
+    A2 -- Báo cáo nhận định cuối --> Spring_SaveAPI
+    Spring_SaveAPI -. Lưu báo cáo vào Table B .-> DB_Storage
+    DB_Storage -. Hiển thị báo cáo .-> GV
+
+     SV:::clientStyle
+     GV:::clientStyle
+     API_Receive:::springStyle
+     CheckHistory:::springStyle
+     Spring_SaveAPI:::springStyle
+     DB_Storage:::dbStyle
+     Queue:::queueStyle
+     A1:::pythonStyle
+     RouteNode:::pythonStyle
+     FetchHist:::pythonStyle
+     A2:::pythonStyle
+    classDef clientStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
+    classDef springStyle fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1
+    classDef queueStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#bf360c
+    classDef pythonStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c
+    classDef dbStyle fill:#eceff1,stroke:#37474f,stroke-width:2px,color:#263238

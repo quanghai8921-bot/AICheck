@@ -29,6 +29,7 @@ public class ExamRepositoryImpl implements ExamRepositoryCustom {
         private static final QSubject subject = QSubject.subject;
 
         // Which tests did that teacher create history for?
+        @Override
         public List<ListExamCreatedResponse> findExamCreateByTeacherCode(UUID examId) {
 
                 return queryFactory
@@ -49,6 +50,7 @@ public class ExamRepositoryImpl implements ExamRepositoryCustom {
         }
 
         // Which exams are currently open or about to open by status
+        @Override
         public List<ListExamResponse> findExamOpenedOrPrepared() {
                 return queryFactory
                                 .select(Projections.constructor(
@@ -71,6 +73,7 @@ public class ExamRepositoryImpl implements ExamRepositoryCustom {
         }
 
         // What questions were on that exam?
+        @Override
         public QuestionResponse questionForExam(UUID examId) {
                 return queryFactory
                                 .select(Projections.constructor(

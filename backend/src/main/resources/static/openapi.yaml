@@ -199,8 +199,8 @@ paths:
     post:
       tags:
         - Student - Exam
-      summary: Sinh viên nộp bài thi theo ID kỳ thi
-      description: Sinh viên nộp bài làm tự luận cho kỳ thi. Hệ thống tự động ghi nhận thời gian nộp, đếm số từ và kích hoạt hàng đợi quét AI. ID sinh viên được lấy từ Token.
+      summary: Sinh viên nộp bài thi
+      description: Sinh viên nộp bài làm tự luận cho kỳ thi theo ID kỳ thi (examId). Hệ thống tự động xác định phiên làm bài của sinh viên dựa trên Token, ghi nhận thời gian nộp, đếm số từ và kích hoạt hàng đợi quét AI.
       security:
         - BearerAuth: []
       parameters:
@@ -253,7 +253,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/StudentExamHistorySummaryResponse'
+                  $ref: '#/components/schemas/HistoryExamResponse'
         '401':
           description: Chưa đăng nhập hoặc Token hết hạn
         '403':
@@ -839,11 +839,17 @@ components:
     SubmitExamRequest:
       type: object
       required:
+        - questionId
         - content
       properties:
+        questionId:
+          type: string
+          format: uuid
+          example: "d3b07384-d113-4f44-96f7-bca888d3a111"
+          description: ID của câu hỏi
         content:
           type: string
-          example: "Thưa thầy, bài làm phân tích cấu trúc cây BST của em như sau: Thao tác xóa nút có 2 con đòi hỏi tìm phần tử kế vị nhỏ nhất ở cây con phải..."
+          example: "Nội dung bài làm..."
           description: Toàn bộ nội dung bài làm tự luận của sinh viên
         wordCount:
           type: integer
@@ -1060,11 +1066,6 @@ components:
       required:
         - passcode
       properties:
-        examId:
-          type: string
-          format: uuid
-          example: "f1a33d3d-a83f-4d24-b742-8de275b14a0e"
-          description: ID của kỳ thi (tùy chọn nếu đã có trên path)
         passcode:
           type: string
           example: "123456"

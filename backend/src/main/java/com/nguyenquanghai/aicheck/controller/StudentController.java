@@ -1,5 +1,6 @@
 package com.nguyenquanghai.aicheck.controller;
 
+import com.nguyenquanghai.aicheck.dto.response.student.HistoryExamResponse;
 import com.nguyenquanghai.aicheck.dto.response.student.ListExamResponse;
 import com.nguyenquanghai.aicheck.services.StudentService;
 
@@ -21,11 +22,11 @@ public class StudentController {
      * Get the student's exam list (including currently open and upcoming exam
      * sessions)
      */
-    @GetMapping({ "/exams" })
+    @GetMapping("/exams")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<List<ListExamResponse>> getExams() {
         List<ListExamResponse> exams = studentService.getActiveOrPrepareExam();
         return ResponseEntity.ok(exams);
     }
-
+    
 }

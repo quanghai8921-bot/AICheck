@@ -13,5 +13,50 @@
     "name": "keycloak.client-id",
     "type": "java.lang.String",
     "description": "A description for 'keycloak.client-id'"
+  },
+  {
+    "name": "rabbitmq.exchange.submission",
+    "type": "java.lang.String",
+    "description": "A description for 'rabbitmq.exchange.submission'"
+  },
+  {
+    "name": "rabbitmq.queue.submission",
+    "type": "java.lang.String",
+    "description": "A description for 'rabbitmq.queue.submission'"
+  },
+  {
+    "name": "rabbitmq.routingkey.submission",
+    "type": "java.lang.String",
+    "description": "A description for 'rabbitmq.routingkey.submission'"
+  },
+  {
+    "name": "keycloak.admin.client-id",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.admin.client-id'"
+  },
+  {
+    "name": "keycloak.admin.realm",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.admin.realm'"
+  },
+  {
+    "name": "keycloak.client-secret-teacher",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.client-secret-teacher'"
+  },
+  {
+    "name": "keycloak.client-secret-student",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.client-secret-student'"
+  },
+  {
+    "name": "keycloak.admin.username",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.admin.username'"
+  },
+  {
+    "name": "keycloak.admin.password",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.admin.password'"
   }
 ]}

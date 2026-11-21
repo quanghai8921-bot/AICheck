@@ -1,13 +1,12 @@
 package com.nguyenquanghai.aicheck.dto.request.student;
 
-import java.util.UUID;
-
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class VerifyPasscodeRequest {
-    private UUID examId;
+    @NotBlank(message = "Passcode is required")
     private String passcode;
 }

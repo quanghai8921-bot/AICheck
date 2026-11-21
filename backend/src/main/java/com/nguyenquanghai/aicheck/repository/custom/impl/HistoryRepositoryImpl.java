@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
+import com.nguyenquanghai.aicheck.dto.response.student.CheckFirstSubmissionResponse;
 import com.nguyenquanghai.aicheck.dto.response.student.HistoryExamResponse;
 import com.nguyenquanghai.aicheck.dto.response.teacher.HistoryGradedExamResponse;
 import com.nguyenquanghai.aicheck.dto.response.teacher.ReceiveExamOfStudentResponse;

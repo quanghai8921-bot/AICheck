@@ -16,4 +16,6 @@ public interface HistoryRepositoryCustom {
 
     // 3. Student view history exam
     List<HistoryExamResponse> findStudentExamHistory(UUID studentId);
+
+    
 }

@@ -1,6 +1,7 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { getExamQuestions, submitExam } from '@/app/services/examService';
 
 // Cấu trúc dữ liệu cho đề bài duy nhất
 interface ExamTopic {
@@ -37,6 +38,15 @@ export const DoingPage: React.FC = () => {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
+  // Dữ liệu API thi & câu hỏi
+  const [examId, setExamId] = useState<string | null>(null);
+  const [questionId, setQuestionId] = useState<string | null>(null);
+  const [questionPrompt, setQuestionPrompt] = useState<string>(EXAM_TOPIC.prompt);
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
+
   // Thông tin sinh viên & ca thi thực tế
   const [studentInfo, setStudentInfo] = useState({
     name: 'Thí sinh',
@@ -54,6 +64,7 @@ export const DoingPage: React.FC = () => {
   // Đồng hồ đếm ngược (84 phút 15 giây)
   const [timeLeft, setTimeLeft] = useState<number>(84 * 60 + 15);
   const editorRef = useRef<HTMLDivElement>(null);
+  const isAutoSubmittedRef = useRef<boolean>(false);
 
   // --- Helper giải mã JWT Token có hỗ trợ Unicode UTF-8 (Tiếng Việt) ---
   const decodeJwtPayload = (token: string) => {
@@ -79,6 +90,25 @@ export const DoingPage: React.FC = () => {
   };
 
   // --- Effects ---
+  // Tải thông tin câu hỏi đề thi
+  const fetchExamQuestion = useCallback(async (id: string) => {
+    try {
+      setIsLoadingQuestion(true);
+      const qData = await getExamQuestions(id);
+      if (qData?.questionId) {
+        setQuestionId(qData.questionId);
+      }
+      if (qData?.content) {
+        setQuestionPrompt(qData.content);
+      }
+    } catch (err: any) {
+      console.error('Lỗi khi tải đề thi:', err);
+      // Giữ đề bài mặc định nếu có lỗi tải
+    } finally {
+      setIsLoadingQuestion(false);
+    }
+  }, []);
+
   // 1. Đọc dữ liệu thực tế từ Access Token & Session
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -86,6 +116,12 @@ export const DoingPage: React.FC = () => {
       const savedCode = sessionStorage.getItem('studentCode') || '';
       const savedTitle = sessionStorage.getItem('currentExamTitle');
       const savedCourse = sessionStorage.getItem('currentCourseCode');
+      const savedExamId = sessionStorage.getItem('currentExamId');
+
+      if (savedExamId) {
+        setExamId(savedExamId);
+        fetchExamQuestion(savedExamId);
+      }
 
       if (savedTitle || savedCourse) {
         setExamMeta({
@@ -119,12 +155,18 @@ export const DoingPage: React.FC = () => {
         });
       }
     }
-  }, []);
+  }, [fetchExamQuestion]);
 
   // 2. Đồng hồ đếm ngược
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -168,11 +210,66 @@ export const DoingPage: React.FC = () => {
     }
   };
 
-  const handleFinalSubmit = () => {
-    setIsSubmitModalOpen(false);
-    alert('Nộp bài thi thành công! Hệ thống đang mã hóa và gửi bài về hội đồng thi.');
-    router.push('/pages/student/exam/listExam');
+  // Nộp bài thi
+  const handleFinalSubmit = async () => {
+    if (isSubmitting || submitSuccess) return;
+
+    const currentActiveExamId =
+      examId || (typeof window !== 'undefined' ? sessionStorage.getItem('currentExamId') : null);
+
+    if (!currentActiveExamId) {
+      setSubmitError('Không tìm thấy mã kỳ thi (examId). Vui lòng quay lại danh sách bài thi.');
+      return;
+    }
+
+    if (!questionId) {
+      setSubmitError('Chưa tải được mã câu hỏi đề thi. Vui lòng thử lại sau vài giây hoặc tải lại trang.');
+      return;
+    }
+
+    const trimmedContent = answer.trim();
+    if (!trimmedContent) {
+      setSubmitError('Nội dung bài làm không được để trống.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      await submitExam(currentActiveExamId, {
+        questionId,
+        content: trimmedContent,
+        wordCount,
+      });
+
+      setSubmitSuccess(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('currentExamId');
+        sessionStorage.removeItem('currentExamTitle');
+        sessionStorage.removeItem('currentCourseCode');
+      }
+
+      // Đợi 2 giây để người dùng thấy thông báo thành công rồi chuyển trang
+      setTimeout(() => {
+        router.push('/pages/student/exam/listExam');
+      }, 2000);
+    } catch (err: any) {
+      console.error('Lỗi khi nộp bài thi:', err);
+      setSubmitError(err.message || 'Có lỗi xảy ra trong quá trình nộp bài. Vui lòng thử lại.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Tự động nộp bài khi hết giờ
+  useEffect(() => {
+    if (timeLeft === 0 && !isAutoSubmittedRef.current && !submitSuccess) {
+      isAutoSubmittedRef.current = true;
+      setIsSubmitModalOpen(true);
+      handleFinalSubmit();
+    }
+  }, [timeLeft, submitSuccess]);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased">
@@ -325,9 +422,16 @@ export const DoingPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900">
-                      <p className="text-sm md:text-base font-semibold leading-relaxed">
-                        {EXAM_TOPIC.prompt}
-                      </p>
+                      {isLoadingQuestion ? (
+                        <div className="flex items-center gap-2 text-slate-500 text-sm py-2">
+                          <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                          <span>Đang tải đề thi từ hệ thống...</span>
+                        </div>
+                      ) : (
+                        <p className="text-sm md:text-base font-semibold leading-relaxed">
+                          {questionPrompt}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -479,8 +583,13 @@ export const DoingPage: React.FC = () => {
                     </div>
                   </div>
                   <button
-                    onClick={() => setIsSubmitModalOpen(false)}
-                    className="w-8 h-8 rounded-lg hover:bg-blue-700 text-white flex items-center justify-center transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (!isSubmitting && !submitSuccess) {
+                        setIsSubmitModalOpen(false);
+                      }
+                    }}
+                    disabled={isSubmitting || submitSuccess}
+                    className="w-8 h-8 rounded-lg hover:bg-blue-700 text-white flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     type="button"
                   >
                     <span className="material-symbols-outlined">close</span>
@@ -488,6 +597,33 @@ export const DoingPage: React.FC = () => {
                 </div>
 
                 <div className="p-6 space-y-4">
+                  {/* Trạng thái thành công */}
+                  {submitSuccess && (
+                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3 animate-in fade-in">
+                      <span className="material-symbols-outlined text-emerald-600 text-[28px] shrink-0">
+                        check_circle
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-sm">Nộp bài thi thành công!</h4>
+                        <p className="text-xs text-emerald-700 mt-0.5">
+                          Hệ thống đã mã hóa và ghi nhận bài làm của bạn. Đang chuyển về danh sách ca thi...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Thông báo lỗi nếu có */}
+                  {submitError && (
+                    <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-2 text-xs animate-in fade-in">
+                      <span className="material-symbols-outlined text-rose-600 text-[20px] shrink-0 mt-0.5">
+                        error
+                      </span>
+                      <div className="leading-relaxed">
+                        <strong className="font-bold">Lỗi nộp bài:</strong> {submitError}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-3">
                       <div>
@@ -535,18 +671,34 @@ export const DoingPage: React.FC = () => {
                 <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 text-xs">
                   <button
                     onClick={() => setIsSubmitModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold transition-colors cursor-pointer"
+                    disabled={isSubmitting || submitSuccess}
+                    className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     type="button"
                   >
                     Quay lại kiểm tra
                   </button>
                   <button
                     onClick={handleFinalSubmit}
-                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                    disabled={isSubmitting || submitSuccess || wordCount === 0}
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-[18px]">send</span>
-                    <span>NỘP BÀI CHÍNH THỨC</span>
+                    {isSubmitting ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Đang nộp bài...</span>
+                      </>
+                    ) : submitSuccess ? (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">done_all</span>
+                        <span>Đã nộp thành công</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">send</span>
+                        <span>NỘP BÀI CHÍNH THỨC</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

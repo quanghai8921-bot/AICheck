@@ -20,6 +20,35 @@ export interface QuestionResponse {
   content: string;
 }
 
+export interface HistoryExamResponse {
+  historyId: string;
+  examId: string;
+  examTitle: string;
+  subjectName: string;
+  score: number | null;
+  feedback: string | null;
+  statusSubmission: string;
+  statusGrading: string;
+}
+
+/**
+ * Lấy danh sách lịch sử thi của sinh viên đã đăng nhập
+ */
+export async function getStudentExamHistory(): Promise<HistoryExamResponse[]> {
+  const response = await fetchWithAuth('/api/v1/student/history', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(
+      errorData?.message || `Không thể tải lịch sử bài thi (Mã lỗi: ${response.status})`
+    );
+  }
+
+  return response.json();
+}
+
 /**
  * Lấy câu hỏi/đề bài thi của sinh viên theo examId
  */

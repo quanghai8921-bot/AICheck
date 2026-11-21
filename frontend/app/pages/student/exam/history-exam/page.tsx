@@ -1,162 +1,228 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/layout/StudentHeader';
 import { useRouter } from 'next/navigation';
-
-// Cấu trúc dữ liệu bài thi lịch sử
-interface MetricBar {
-  label: string;
-  score: string;
-  percentage: number;
-}
-
-interface ExamHistoryItem {
-  code: string;
-  name: string;
-  semester: string;
-  typeText: string;
-  durationText: string;
-  dateText: string;
-  shiftText: string;
-  lecturerName: string;
-  lecturerAvatar: string;
-  department: string;
-  feedbackText: string;
-  similarityText: string;
-  feedbackTime: string;
-  finalScore: number;
-  letterGrade: string;
-  gradeBadgeText: string;
-  metrics: MetricBar[];
-}
-
-const EXAM_HISTORY_DATA: ExamHistoryItem[] = [
-  {
-    code: 'CS201',
-    name: 'Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng',
-    semester: 'hk1-2024-2025',
-    typeText: 'Tự luận giải thuật',
-    durationText: '120 phút',
-    dateText: '12/10/2024',
-    shiftText: 'Ca thi 02 (09:30 - 11:30)',
-    lecturerName: 'TS. Lê Quang Mai',
-    lecturerAvatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCsN8snxtVzJr_Z-SwaavNtl64fWYtCXDGrmVE_Xg-iAmI-KHatyBtoGffBfQz8wuttwNqbwMw8BSsCM9KQXO7N_3gCi_EKG2n7LWxiBfeh0dZdv9IsNpfOtNhJBwHT1W0NMV9zWvru4musXTTb6ml7KwTqK8TuS8Ls4dT1CKYkJM__vWx3GPWLf3uvAS77ATH5eupdrjiLkB2m_FkHOx-Za6tD45-Ym13ROCIaIM9u-uj7k1g9lzZG_Q',
-    department: 'Bộ môn Khoa Học Máy Tính',
-    feedbackText:
-      'Phần lập luận thuật toán tối ưu tốt, mã giả rõ ràng, bài viết tự luận phân tích độ phức tạp thời gian O(n log n) rất sâu sắc và thuyết phục.',
-    similarityText: '3.2%',
-    feedbackTime: '14:20 13/10/2024',
-    finalScore: 9.0,
-    letterGrade: 'A',
-    gradeBadgeText: 'Xuất sắc',
-    metrics: [
-      { label: 'Thuật toán & Độ phức tạp:', score: '4.8 / 5.0', percentage: 96 },
-      { label: 'Trình bày mã giả & Luận điểm:', score: '4.2 / 5.0', percentage: 84 },
-    ],
-  },
-  {
-    code: 'OOP301',
-    name: 'Kỹ Thuật Lập Trình Nâng Cao & Thiết Kế Hướng Đối Tượng',
-    semester: 'hk1-2024-2025',
-    typeText: 'Thiết kế phần mềm & Tự luận',
-    durationText: '90 phút',
-    dateText: '28/09/2024',
-    shiftText: 'Ca thi 01 (07:30 - 09:00)',
-    lecturerName: 'ThS. Hoàng Thị Phương Lan',
-    lecturerAvatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA7SjEA2I4U0pm9cxMh90cnDRIBw17nIrcW6eMCU0pWeR_n26EKnPYNN4OnenJ-tM-BN7X57DwQrFo8emAIdvQ6JrX9QXsv66hWCutGjcSjKeMXY6BbIiGTvebO5sX7kjanxsWPF1f93EuXv14jagoXXesghVkJ5d__6Gg0MaAnWkxrb1Z64Lnwsps4IwG-HSIggAv2X3moK0ur5--hv6s8SkylkKsbginwpnb3McggFG4giQYwKVGGtQ',
-    department: 'Bộ môn Công Nghệ Phần Mềm',
-    feedbackText:
-      'Cấu trúc thiết kế mẫu áp dụng chuẩn xác. Cần lưu ý giải thích chi tiết hơn ở câu hỏi mở về nguyên lý Dependency Inversion.',
-    similarityText: '4.8%',
-    feedbackTime: '09:15 30/09/2024',
-    finalScore: 8.5,
-    letterGrade: 'B+',
-    gradeBadgeText: 'Giỏi',
-    metrics: [
-      { label: 'Thiết kế mẫu & Kiến trúc:', score: '4.5 / 5.0', percentage: 90 },
-      { label: 'Nguyên lý SOLID & Tự luận:', score: '4.0 / 5.0', percentage: 80 },
-    ],
-  },
-  {
-    code: 'ENG201',
-    name: 'Kỹ Năng Viết Học Thuật Tiếng Anh Cơ Bản',
-    semester: 'hk2-2023-2024',
-    typeText: 'Academic Essay Writing',
-    durationText: '100 phút',
-    dateText: '15/06/2024',
-    shiftText: 'Ca thi 03 (13:30 - 15:10)',
-    lecturerName: 'ThS. David Henderson',
-    lecturerAvatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBTRP8hg1FWNX0ToQG-6F_AQW1rx8wd4PxGVtmZpiX9LEEhptNdpX7pzztSQYzJdzxP4Ewp7OjtmMsx5Iw2ACBgPb5-n4W_9Dw777_2mpIxKCWkkTLg6CAKFl93KrB6AOWkZJ7xaVdfV5IMn_yk5iRgq358LrDPYSX3YUpeNrAV2KU04KoklwD6NsdDsA23FZk1WayIrr8q8kIfh6TJlTJz_Qu63gHMfKPM5SPLXM3RM6LTFfiwREj0Cw',
-    department: 'Khoa Ngoại Ngữ Chuyên Ngành',
-    feedbackText:
-      'Luận điểm (thesis statement) gãy gọn, từ vựng học thuật đa dạng. Đoạn kết luận cần liên kết chặt chẽ hơn với bối cảnh thực tiễn.',
-    similarityText: '2.1%',
-    feedbackTime: '16:45 18/06/2024',
-    finalScore: 8.2,
-    letterGrade: 'B+',
-    gradeBadgeText: 'Khá Giỏi',
-    metrics: [
-      { label: 'Thesis & Argumentation:', score: '4.2 / 5.0', percentage: 84 },
-      { label: 'Lexical Resource & Grammar:', score: '4.0 / 5.0', percentage: 80 },
-    ],
-  },
-  {
-    code: 'DB102',
-    name: 'Cơ Sở Dữ Liệu & Hệ Quản Trị CSDL',
-    semester: 'hk2-2023-2024',
-    typeText: 'Tự luận thiết kế hệ thống',
-    durationText: '120 phút',
-    dateText: '04/05/2024',
-    shiftText: 'Ca thi 01 (08:00 - 10:00)',
-    lecturerName: 'PGS.TS. Nguyễn Thanh Hải',
-    lecturerAvatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDYurp3ZQHnkCTipwZD4tBLErQNDeROLfaIrCwijcy20VdpX4VZVMCEBdR2ILUyLSzvPAL_mPY5pjoIodkvb125294jkn8SzE6mWCgGoc-e5LsmKspnc3EtGQix63919N9OehHP2lCgLZHOg0ia0E6VwUgb4JY9tMUuuMXtEwCYMoA0FWBjVU6DNNw_DBt9cg2QDiXcyHzODe9zcmx-6M0DM_b8PHGo0F_DQS45ERNeJCI02dRaOtMMlQ',
-    department: 'Viện Nghiên Cứu Hệ Thống Thông Tin',
-    feedbackText:
-      'Bài làm xuất sắc. Chuẩn hóa dạng 3NF và BCNF chính xác, câu tự luận mở về đánh chỉ mục truy vấn phân tán rất hay.',
-    similarityText: '1.5%',
-    feedbackTime: '11:30 06/05/2024',
-    finalScore: 9.2,
-    letterGrade: 'A+',
-    gradeBadgeText: 'Xuất sắc',
-    metrics: [
-      { label: 'Chuẩn hóa lược đồ CSDL:', score: '4.9 / 5.0', percentage: 98 },
-      { label: 'Tối ưu hóa chỉ mục truy vấn:', score: '4.3 / 5.0', percentage: 86 },
-    ],
-  },
-];
+import { getStudentExamHistory, HistoryExamResponse } from '@/app/services/examService';
 
 export const HistoryExamPage: React.FC = () => {
   const router = useRouter();
+
   // --- States ---
-  const [selectedSemester, setSelectedSemester] = useState<string>('all');
+  const [historyList, setHistoryList] = useState<HistoryExamResponse[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [studentCode, setStudentCode] = useState<string>('');
+
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Modal Phúc Khảo State
-  const [selectedReviewExam, setSelectedReviewExam] = useState<ExamHistoryItem | null>(null);
+  const [selectedReviewExam, setSelectedReviewExam] = useState<HistoryExamResponse | null>(null);
   const [reviewReason, setReviewReason] = useState<string>('');
+
+  // Modal Chi Tiết Bài Nộp State
+  const [selectedDetailExam, setSelectedDetailExam] = useState<HistoryExamResponse | null>(null);
+
+  // --- Fetch Data ---
+  const fetchHistory = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('accessToken') : null;
+    const savedCode = typeof window !== 'undefined' ? sessionStorage.getItem('studentCode') : null;
+    if (savedCode) {
+      setStudentCode(savedCode);
+    }
+
+    if (!token) {
+      router.push('/pages/student/auth');
+      return;
+    }
+
+    try {
+      const data = await getStudentExamHistory();
+      setHistoryList(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Không thể tải lịch sử làm bài thi. Vui lòng thử lại sau.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  // --- Điểm & Xếp loại Helpers ---
+  const getGradeInfo = (score: number | null, statusGrading: string) => {
+    const isGraded =
+      statusGrading?.toUpperCase() === 'GRADED' ||
+      statusGrading?.toUpperCase() === 'ĐÃ CHẤM' ||
+      (score !== null && score !== undefined);
+
+    if (!isGraded || score === null || score === undefined) {
+      return {
+        scoreDisplay: '--',
+        letterGrade: '?',
+        badgeText: 'Chờ chấm',
+        colorClass: 'bg-amber-500 text-white',
+        badgeBg: 'bg-amber-50 text-amber-700 border-amber-200',
+      };
+    }
+
+    const s = Number(score);
+    if (s >= 9.0) {
+      return {
+        scoreDisplay: s.toFixed(1),
+        letterGrade: 'A+',
+        badgeText: 'Xuất sắc',
+        colorClass: 'bg-emerald-600 text-white',
+        badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      };
+    }
+    if (s >= 8.5) {
+      return {
+        scoreDisplay: s.toFixed(1),
+        letterGrade: 'A',
+        badgeText: 'Giỏi',
+        colorClass: 'bg-[#00236f] text-white',
+        badgeBg: 'bg-blue-50 text-[#00236f] border-blue-200',
+      };
+    }
+    if (s >= 8.0) {
+      return {
+        scoreDisplay: s.toFixed(1),
+        letterGrade: 'B+',
+        badgeText: 'Khá Giỏi',
+        colorClass: 'bg-[#00236f] text-white',
+        badgeBg: 'bg-blue-50 text-[#00236f] border-blue-200',
+      };
+    }
+    if (s >= 7.0) {
+      return {
+        scoreDisplay: s.toFixed(1),
+        letterGrade: 'B',
+        badgeText: 'Khá',
+        colorClass: 'bg-indigo-600 text-white',
+        badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      };
+    }
+    if (s >= 6.5) {
+      return {
+        scoreDisplay: s.toFixed(1),
+        letterGrade: 'C+',
+        badgeText: 'Trung bình khá',
+        colorClass: 'bg-amber-600 text-white',
+        badgeBg: 'bg-amber-50 text-amber-700 border-amber-200',
+      };
+    }
+    if (s >= 5.5) {
+      return {
+        scoreDisplay: s.toFixed(1),
+        letterGrade: 'C',
+        badgeText: 'Trung bình',
+        colorClass: 'bg-amber-600 text-white',
+        badgeBg: 'bg-amber-50 text-amber-700 border-amber-200',
+      };
+    }
+    if (s >= 5.0) {
+      return {
+        scoreDisplay: s.toFixed(1),
+        letterGrade: 'D+',
+        badgeText: 'TB Yếu',
+        colorClass: 'bg-orange-600 text-white',
+        badgeBg: 'bg-orange-50 text-orange-700 border-orange-200',
+      };
+    }
+    if (s >= 4.0) {
+      return {
+        scoreDisplay: s.toFixed(1),
+        letterGrade: 'D',
+        badgeText: 'Đạt',
+        colorClass: 'bg-orange-600 text-white',
+        badgeBg: 'bg-orange-50 text-orange-700 border-orange-200',
+      };
+    }
+    return {
+      scoreDisplay: s.toFixed(1),
+      letterGrade: 'F',
+      badgeText: 'Chưa đạt',
+      colorClass: 'bg-rose-600 text-white',
+      badgeBg: 'bg-rose-50 text-rose-700 border-rose-200',
+    };
+  };
+
+  const getSubmissionBadge = (status?: string | null) => {
+    if (!status) return null;
+    const s = status.trim().toUpperCase();
+    let colorClass = 'bg-slate-100 text-slate-700 border-slate-200';
+    if (s === 'SUBMITTED' || s === 'ĐÃ NỘP') {
+      colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    } else if (s === 'LATE' || s === 'NỘP MUỘN') {
+      colorClass = 'bg-rose-50 text-rose-700 border-rose-200';
+    } else if (s === 'IN_PROGRESS' || s === 'DOING') {
+      colorClass = 'bg-blue-50 text-blue-700 border-blue-200';
+    }
+    return { text: status, className: colorClass };
+  };
+
+  const getGradingBadge = (status?: string | null) => {
+    if (!status) return null;
+    const s = status.trim().toUpperCase();
+    let colorClass = 'bg-slate-100 text-slate-700 border-slate-200';
+    if (s === 'GRADED' || s === 'ĐÃ CHẤM') {
+      colorClass = 'bg-blue-50 text-[#00236f] border-blue-200';
+    } else if (s === 'PENDING' || s === 'CHƯA CHẤM' || s === 'NOT_GRADED') {
+      colorClass = 'bg-amber-50 text-amber-700 border-amber-200';
+    }
+    return { text: status, className: colorClass };
+  };
+
+  // --- Thống kê tổng quan ---
+  const stats = useMemo(() => {
+    const total = historyList.length;
+    const graded = historyList.filter(
+      (item) => item.statusGrading?.toUpperCase() === 'GRADED' || item.score !== null
+    );
+    const gradedCount = graded.length;
+    const sumScore = graded.reduce((acc, curr) => acc + (curr.score ? Number(curr.score) : 0), 0);
+    const avgScore = gradedCount > 0 ? (sumScore / gradedCount).toFixed(2) : '--';
+
+    return { total, gradedCount, avgScore };
+  }, [historyList]);
 
   // --- Filter Logic ---
   const filteredExams = useMemo(() => {
-    return EXAM_HISTORY_DATA.filter((item) => {
-      const matchSemester =
-        selectedSemester === 'all' || item.semester === selectedSemester;
+    return historyList.filter((item) => {
+      // Lọc trạng thái chấm điểm
+      const isGraded =
+        item.statusGrading?.toUpperCase() === 'GRADED' ||
+        item.statusGrading?.toUpperCase() === 'ĐÃ CHẤM' ||
+        item.score !== null;
+
+      let matchStatus = true;
+      if (statusFilter === 'graded') {
+        matchStatus = isGraded;
+      } else if (statusFilter === 'pending') {
+        matchStatus = !isGraded;
+      }
+
+      // Lọc từ khóa tìm kiếm
       const q = searchQuery.trim().toLowerCase();
       const matchSearch =
         !q ||
-        item.name.toLowerCase().includes(q) ||
-        item.code.toLowerCase().includes(q) ||
-        item.lecturerName.toLowerCase().includes(q);
-      return matchSemester && matchSearch;
-    });
-  }, [selectedSemester, searchQuery]);
+        (item.subjectName && item.subjectName.toLowerCase().includes(q)) ||
+        (item.examTitle && item.examTitle.toLowerCase().includes(q)) ||
+        (item.historyId && item.historyId.toLowerCase().includes(q)) ||
+        (item.examId && item.examId.toLowerCase().includes(q));
 
-  // --- Handlers ---
-  const handleOpenReviewModal = (exam: ExamHistoryItem) => {
+      return matchStatus && matchSearch;
+    });
+  }, [historyList, statusFilter, searchQuery]);
+
+  // --- Handlers Modal Phúc Khảo ---
+  const handleOpenReviewModal = (exam: HistoryExamResponse) => {
     setSelectedReviewExam(exam);
     setReviewReason('');
   };
@@ -173,30 +239,30 @@ export const HistoryExamPage: React.FC = () => {
       return;
     }
     alert(
-      `Đã gửi đơn phúc khảo học phần ${selectedReviewExam?.code} - ${selectedReviewExam?.name} tới Ban Thư Ký Khảo Thí!`
+      `Đã gửi đơn phúc khảo bài thi "${selectedReviewExam?.subjectName || selectedReviewExam?.examTitle}" tới Ban Thư Ký Khảo Thí!`
     );
     handleCloseReviewModal();
   };
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased flex flex-col">
-      {/* 1. THÊM HEADER VÀO ĐÂY */}
+      {/* 1. HEADER */}
       <Header
         isLoggedIn={true}
         user={{
-          name: "Nguyễn Văn An",
-          studentId: "SV2024-8841",
-          department: "Khoa Công nghệ Thông tin",
-          shortName: "AN"
+          name: studentCode ? `Sinh viên (${studentCode})` : 'Sinh viên',
+          studentId: studentCode || 'SV-AICHECK',
+          department: 'Khoa Công nghệ Thông tin',
+          shortName: studentCode ? studentCode.slice(-2).toUpperCase() : 'SV',
         }}
         onLogout={() => {
-          // Xử lý khi thí sinh bấm Đăng xuất từ dropdown Header
           if (typeof window !== 'undefined') {
             sessionStorage.clear();
           }
           router.push('/pages/home');
         }}
       />
+
       {/* 2. MAIN CONTENT AREA */}
       <main className="w-full flex-1 bg-slate-100">
         <div className="relative w-full overflow-hidden">
@@ -209,7 +275,7 @@ export const HistoryExamPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <button
-                  className="flex items-center gap-1 font-semibold text-[#00236f] hover:text-[#00236f] transition-colors"
+                  className="flex items-center gap-1 font-semibold text-[#00236f] hover:text-blue-800 transition-colors"
                   type="button"
                   onClick={() => router.push('/pages/student/exam/listExam')}
                 >
@@ -217,7 +283,7 @@ export const HistoryExamPage: React.FC = () => {
                   <span>Danh sách môn thi hôm nay</span>
                 </button>
                 <span className="text-slate-300">/</span>
-                <span className="text-slate-600 font-medium">Lịch sử môn đã thi</span>
+                <span className="text-slate-600 font-medium">Lịch sử bài thi đã nộp</span>
               </div>
             </div>
 
@@ -226,15 +292,11 @@ export const HistoryExamPage: React.FC = () => {
               <div className="absolute top-0 left-0 bottom-0 w-2 bg-[#00236f]" />
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-200 shrink-0 shadow-inner">
-                    <img
-                      className="w-full h-full object-cover"
-                      alt="Avatar sinh viên"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSoxDzJmxjudxIqEOEPQ18Ye2FIId1yBM62oH5aLb6sf4WC2hFtgfXCjaBb-anYHDM1doC3FLbiXYPcz74zWqPRiiCmCPxOiYbNEMqV8_pz5zADBX6p4ur_E5Xv59bvaWvGR7XgyvUBtCxTJEumRz_pjJSnM8JsUyz7hSGoainE9PMVYuxbyp27acSY_RN4wXm-rs34RYvpeppYvVAPb0feJgrpx9BcBIkMujEdrzWDB1wmRm-vKQC9w"
-                    />
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-200 shrink-0 shadow-inner flex items-center justify-center bg-gradient-to-br from-[#00236f] to-blue-700 text-white">
+                    <span className="material-symbols-outlined text-4xl">school</span>
                     <div
                       className="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white"
-                      title="Trạng thái: Đã xác thực sinh trắc học"
+                      title="Trạng thái: Đã đăng nhập"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -243,43 +305,45 @@ export const HistoryExamPage: React.FC = () => {
                         Sinh viên chính quy
                       </span>
                       <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
-                        Khóa K2024
+                        Hệ Thống AICheck
                       </span>
                     </div>
                     <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
-                      Nguyễn Văn An
+                      Lịch Sử Bài Thi Của Tôi
                     </h1>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
                       <span className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-[16px] text-[#00236f]">
                           badge
                         </span>
-                        MSSV: <strong className="text-slate-800">SV2024-8841</strong>
+                        Mã sinh viên:{' '}
+                        <strong className="text-slate-800">{studentCode || 'Đang cập nhật'}</strong>
                       </span>
                       <span className="hidden sm:inline text-slate-300">•</span>
                       <span className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-[16px] text-[#00236f]">
-                          domain
+                          history_edu
                         </span>
-                        Khoa Khoa Học Máy Tính &amp; Kỹ Thuật Thông Tin
+                        Tổng số bài thi đã làm:{' '}
+                        <strong className="text-slate-800">{stats.total} bài</strong>
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Academic Seal Badge */}
-                <div className="flex items-center gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200 self-start lg:self-center">
-                  <div className="w-11 h-11 rounded-lg bg-[#00236f] text-white flex items-center justify-center shrink-0 shadow-sm">
-                    <span className="material-symbols-outlined text-[26px]">verified</span>
+                {/* Academic Quick Stats */}
+                <div className="grid grid-cols-3 gap-3 self-stretch lg:self-auto">
+                  <div className="flex flex-col items-center justify-center p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[11px] text-slate-500 uppercase font-semibold">Đã làm</span>
+                    <span className="text-lg font-bold text-[#00236f]">{stats.total}</span>
                   </div>
-                  <div className="flex flex-col text-xs">
-                    <span className="text-slate-500 uppercase font-semibold">
-                      Hội đồng Khảo thí
-                    </span>
-                    <span className="font-bold text-[#00236f] text-sm">
-                      Xác nhận Kết quả kỳ thi
-                    </span>
-                    <span className="text-slate-500">Cập nhật lúc 08:30 • 14/10/2024</span>
+                  <div className="flex flex-col items-center justify-center p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                    <span className="text-[11px] text-blue-600 uppercase font-semibold">Đã chấm</span>
+                    <span className="text-lg font-bold text-blue-700">{stats.gradedCount}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                    <span className="text-[11px] text-emerald-600 uppercase font-semibold">ĐTB</span>
+                    <span className="text-lg font-bold text-emerald-700">{stats.avgScore}</span>
                   </div>
                 </div>
               </div>
@@ -288,19 +352,19 @@ export const HistoryExamPage: React.FC = () => {
             {/* Filters & View Controls */}
             <div className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-                {/* Select Học kỳ */}
-                <div className="relative min-w-[240px]">
+                {/* Select Trạng thái chấm điểm */}
+                <div className="relative min-w-[200px]">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[20px] text-slate-400 pointer-events-none">
-                    calendar_month
+                    filter_alt
                   </span>
                   <select
-                    value={selectedSemester}
-                    onChange={(e) => setSelectedSemester(e.target.value)}
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full pl-10 pr-9 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer appearance-none"
                   >
-                    <option value="all">Tất cả các học kỳ</option>
-                    <option value="hk1-2024-2025">Học kỳ 1 năm học 2024-2025</option>
-                    <option value="hk2-2023-2024">Học kỳ 2 năm học 2023-2024</option>
+                    <option value="all">Tất cả bài thi ({historyList.length})</option>
+                    <option value="graded">Đã có điểm chấm ({stats.gradedCount})</option>
+                    <option value="pending">Đang chờ chấm ({stats.total - stats.gradedCount})</option>
                   </select>
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-slate-400 pointer-events-none">
                     expand_more
@@ -316,24 +380,38 @@ export const HistoryExamPage: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors"
-                    placeholder="Tìm kiếm theo tên môn thi hoặc mã học phần (CS201, OOP301...)"
+                    placeholder="Tìm theo tên môn học hoặc tên kỳ thi..."
                     type="text"
                   />
                 </div>
               </div>
 
-              {/* Counter & View Mode Toggle */}
-              <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+              {/* Counter, Refresh & View Mode Toggle */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                <button
+                  onClick={fetchHistory}
+                  disabled={isLoading}
+                  title="Tải lại danh sách"
+                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors flex items-center justify-center disabled:opacity-50"
+                  type="button"
+                >
+                  <span className={`material-symbols-outlined text-[18px] ${isLoading ? 'animate-spin' : ''}`}>
+                    refresh
+                  </span>
+                </button>
+
                 <span className="text-xs text-slate-500">
-                  Hiển thị <strong className="text-[#00236f] font-bold">{filteredExams.length}</strong> bài thi tự luận
+                  Hiển thị <strong className="text-[#00236f] font-bold">{filteredExams.length}</strong> bài thi
                 </span>
+
                 <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${viewMode === 'list'
-                      ? 'bg-white text-[#00236f] shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                      }`}
+                    className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      viewMode === 'list'
+                        ? 'bg-white text-[#00236f] shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
                     title="Dạng danh sách"
                     type="button"
                   >
@@ -341,10 +419,11 @@ export const HistoryExamPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${viewMode === 'grid'
-                      ? 'bg-white text-[#00236f] shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                      }`}
+                    className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      viewMode === 'grid'
+                        ? 'bg-white text-[#00236f] shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
                     title="Dạng lưới"
                     type="button"
                   >
@@ -354,169 +433,312 @@ export const HistoryExamPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Examination History List / Grid Container */}
-            <div
-              className={
-                viewMode === 'grid'
-                  ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
-                  : 'flex flex-col gap-6'
-              }
-            >
-              {filteredExams.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
-                  <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">
-                    search_off
-                  </span>
-                  <p className="text-sm font-semibold">Không tìm thấy bài thi phù hợp</p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Vui lòng thử lại từ khóa hoặc chọn học kỳ khác.
-                  </p>
+            {/* Error Message Box */}
+            {errorMessage && (
+              <div className="w-full bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-rose-700 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[20px] text-rose-600">error</span>
+                  <span>{errorMessage}</span>
                 </div>
-              ) : (
-                filteredExams.map((item) => (
+                <button
+                  onClick={fetchHistory}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg transition-colors shrink-0"
+                >
+                  Thử lại
+                </button>
+              </div>
+            )}
+
+            {/* Loading Skeleton */}
+            {isLoading && (
+              <div className="flex flex-col gap-4">
+                {[1, 2, 3].map((n) => (
                   <div
-                    key={item.code}
-                    className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all border border-slate-200 overflow-hidden"
+                    key={n}
+                    className="bg-white rounded-2xl p-6 border border-slate-200 animate-pulse flex flex-col md:flex-row gap-6 justify-between"
                   >
-                    <div className="p-5 md:p-6 flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                      {/* Left Info & Feedback */}
-                      <div className="flex-1 flex flex-col gap-4">
-                        {/* Tags & Subject Title */}
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="px-2.5 py-0.5 rounded-md bg-[#00236f] text-white font-bold">
-                              {item.code}
-                            </span>
-                            <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-[#00236f] font-semibold">
-                              {item.typeText} ({item.durationText})
-                            </span>
-                            <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-800 flex items-center gap-1 font-medium">
-                              <span className="material-symbols-outlined text-[14px]">
-                                event
-                              </span>
-                              Ngày thi: {item.dateText}
-                            </span>
-                            <span className="px-2.5 py-0.5 rounded-md bg-slate-50 text-slate-500 flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[14px]">
-                                lightbulb_2
-                              </span>
-                              {item.shiftText}
-                            </span>
-                          </div>
-                          <h2 className="text-lg md:text-xl font-bold text-blue-950 tracking-tight">
-                            {item.name}
-                          </h2>
-                        </div>
-
-                        {/* Lecturer Card */}
-                        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                          <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden shrink-0">
-                            <img
-                              className="w-full h-full object-cover"
-                              alt={item.lecturerName}
-                              src={item.lecturerAvatar}
-                            />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-slate-400">Cán bộ chấm thi chính</span>
-                            <span className="font-bold text-slate-800">
-                              {item.lecturerName}
-                            </span>
-                          </div>
-                          <span className="ml-auto px-2 py-0.5 rounded bg-slate-200 text-slate-600 hidden sm:inline-block">
-                            {item.department}
-                          </span>
-                        </div>
-
-                        {/* Feedback Box */}
-                        <div className="relative bg-slate-50 rounded-xl p-4 border border-slate-200/80">
-                          <div className="flex items-center gap-1.5 text-[#00236f] mb-1.5 text-xs font-bold uppercase tracking-wider">
-                            <span className="material-symbols-outlined text-[18px]">
-                              format_quote
-                            </span>
-                            <span>Lời nhận xét chi tiết của Giảng viên:</span>
-                          </div>
-                          <p className="text-slate-700 italic text-sm leading-relaxed pl-1 font-serif">
-                            "{item.feedbackText}"
-                          </p>
-                          <div className="mt-3 pt-2 border-t border-slate-200/60 flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-500 text-xs">
-                            <span>Nhận xét lúc: {item.feedbackTime}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Grade Visual & Action Buttons */}
-                      <div className="w-full lg:w-72 shrink-0 flex flex-col justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                        {/* Điểm tổng kết */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <span className="text-xs text-slate-500 uppercase font-semibold">
-                              Điểm tổng kết
-                            </span>
-                            <div className="flex items-baseline gap-1 mt-0.5">
-                              <span className="text-3xl font-bold text-[#00236f]">
-                                {item.finalScore.toFixed(1)}
-                              </span>
-                              <span className="text-base text-slate-400 font-medium">
-                                / 10
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-[#00236f] text-white shadow-sm">
-                            <span className="text-xl font-bold leading-none">
-                              {item.letterGrade}
-                            </span>
-                            <span className="text-[10px] uppercase font-medium mt-0.5">
-                              {item.gradeBadgeText}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Metric mini-bars */}
-                        <div className="flex flex-col gap-2 py-2 bg-white p-3 rounded-lg border border-slate-100 text-xs">
-                          {item.metrics.map((m, idx) => (
-                            <div key={idx} className="space-y-1">
-                              <div className="flex justify-between">
-                                <span className="text-slate-500">{m.label}</span>
-                                <span className="text-[#00236f] font-bold">{m.score}</span>
-                              </div>
-                              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                <div
-                                  className="bg-[#00236f] h-full rounded-full"
-                                  style={{ width: `${m.percentage}%` }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* CTAs */}
-                        <div className="flex flex-col gap-2 text-xs">
-                          <button
-                            onClick={() => {
-                              alert(`Đang tải chi tiết bài làm & biên bản chấm điểm môn ${item.code}...`);
-                              router.push(`/pages/student/exam/doing/details?code=${item.code}`);
-                            }}
-                            className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-[#00236f] hover:bg-[#1e3a8a] text-white font-semibold transition-all shadow-sm"
-                            type="button"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">
-                              description
-                            </span>
-                            <span>Xem chi tiết bài làm</span>
-                          </button>
-                        </div>
-                      </div>
+                    <div className="flex-1 space-y-3">
+                      <div className="h-4 bg-slate-200 rounded w-1/4" />
+                      <div className="h-6 bg-slate-200 rounded w-3/4" />
+                      <div className="h-16 bg-slate-100 rounded w-full" />
                     </div>
+                    <div className="w-full md:w-64 h-32 bg-slate-100 rounded-xl shrink-0" />
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* Examination History List / Grid Container */}
+            {!isLoading && (
+              <div
+                className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
+                    : 'flex flex-col gap-6'
+                }
+              >
+                {filteredExams.length === 0 ? (
+                  <div className="col-span-full bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
+                    <span className="material-symbols-outlined text-5xl text-slate-300 mb-2">
+                      fact_check
+                    </span>
+                    <p className="text-sm font-semibold text-slate-700">
+                      {historyList.length === 0
+                        ? 'Bạn chưa có lịch sử làm bài thi nào'
+                        : 'Không tìm thấy bài thi phù hợp với bộ lọc'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                      {historyList.length === 0
+                        ? 'Các bài thi tự luận bạn đã hoàn thành và nộp bài sẽ tự động xuất hiện tại đây kèm điểm số và nhận xét.'
+                        : 'Vui lòng thử lại từ khóa khác hoặc chuyển bộ lọc sang "Tất cả bài thi".'}
+                    </p>
+                    {historyList.length === 0 && (
+                      <button
+                        onClick={() => router.push('/pages/student/exam/listExam')}
+                        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#00236f] hover:bg-blue-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                        <span>Xem danh sách bài thi hôm nay</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  filteredExams.map((item) => {
+                    const gradeInfo = getGradeInfo(item.score, item.statusGrading);
+                    const subBadge = getSubmissionBadge(item.statusSubmission);
+                    const gradBadge = getGradingBadge(item.statusGrading);
+                    const isGraded =
+                      item.statusGrading?.toUpperCase() === 'GRADED' ||
+                      item.statusGrading?.toUpperCase() === 'ĐÃ CHẤM' ||
+                      item.score !== null;
+
+                    return (
+                      <div
+                        key={item.historyId || item.examId}
+                        className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all border border-slate-200 overflow-hidden flex flex-col"
+                      >
+                        <div className="p-5 md:p-6 flex flex-col lg:flex-row lg:items-start justify-between gap-6 flex-1">
+                          {/* Left Info & Feedback */}
+                          <div className="flex-1 flex flex-col gap-4">
+                            {/* Badges & Titles */}
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex flex-wrap items-center gap-2 text-xs">
+                                {subBadge && (
+                                  <span className={`px-2.5 py-0.5 rounded-md font-semibold border ${subBadge.className}`}>
+                                    {item.statusSubmission}
+                                  </span>
+                                )}
+                                {gradBadge && (
+                                  <span className={`px-2.5 py-0.5 rounded-md font-semibold border ${gradBadge.className}`}>
+                                    {item.statusGrading}
+                                  </span>
+                                )}
+                                {item.historyId && (
+                                  <span className="px-2.5 py-0.5 rounded-md bg-slate-50 text-slate-500 font-mono text-[11px] border border-slate-100 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[13px]">fingerprint</span>
+                                    {item.historyId.substring(0, 8)}...
+                                  </span>
+                                )}
+                              </div>
+
+                              <h2 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight">
+                                {item.subjectName || 'Môn học chưa xác định'}
+                              </h2>
+
+                              <p className="text-xs text-slate-600 font-medium flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[15px] text-[#00236f]">
+                                  assignment
+                                </span>
+                                Kỳ thi: <span className="font-semibold text-slate-800">{item.examTitle || 'Bài kiểm tra tự luận'}</span>
+                              </p>
+                            </div>
+
+                            {/* Feedback Box */}
+                            <div className="relative bg-slate-50 rounded-xl p-4 border border-slate-200/80">
+                              <div className="flex items-center gap-1.5 text-[#00236f] mb-1.5 text-xs font-bold uppercase tracking-wider">
+                                <span className="material-symbols-outlined text-[18px]">
+                                  format_quote
+                                </span>
+                                <span>Nhận xét của Giảng viên chấm thi:</span>
+                              </div>
+                              {item.feedback && item.feedback.trim() ? (
+                                <p className="text-slate-700 italic text-sm leading-relaxed pl-1 font-serif">
+                                  "{item.feedback}"
+                                </p>
+                              ) : (
+                                <p className="text-slate-400 italic text-xs pl-1">
+                                  {isGraded
+                                    ? 'Giảng viên không để lại nhận xét bằng lời cho bài thi này.'
+                                    : 'Bài làm đang trong quá trình chấm điểm, nhận xét sẽ hiển thị khi có kết quả chính thức.'}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Right Grade Visual & Action Buttons */}
+                          <div className="w-full lg:w-72 shrink-0 flex flex-col justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                            {/* Điểm tổng kết */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <span className="text-xs text-slate-500 uppercase font-semibold">
+                                  Điểm số đạt được
+                                </span>
+                                <div className="flex items-baseline gap-1 mt-0.5">
+                                  <span className="text-3xl font-bold text-[#00236f]">
+                                    {gradeInfo.scoreDisplay}
+                                  </span>
+                                  <span className="text-base text-slate-400 font-medium">
+                                    / 10
+                                  </span>
+                                </div>
+                              </div>
+                              <div
+                                className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl ${gradeInfo.colorClass} shadow-sm`}
+                              >
+                                <span className="text-xl font-bold leading-none">
+                                  {gradeInfo.letterGrade}
+                                </span>
+                                <span className="text-[10px] uppercase font-medium mt-0.5 text-center px-1">
+                                  {gradeInfo.badgeText}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Summary info chips */}
+                            <div className="flex flex-col gap-2 py-2 bg-white p-3 rounded-lg border border-slate-100 text-xs">
+                              <div className="flex justify-between items-center">
+                                <span className="text-slate-500">Trạng thái bài nộp:</span>
+                                <span className="font-semibold text-slate-800">{item.statusSubmission}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-slate-500">Tiến độ chấm:</span>
+                                <span className="font-semibold text-slate-800">{item.statusGrading}</span>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-col gap-2 text-xs">
+                              <button
+                                onClick={() => setSelectedDetailExam(item)}
+                                className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-[#00236f] hover:bg-blue-900 text-white font-semibold transition-all shadow-sm"
+                                type="button"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">
+                                  visibility
+                                </span>
+                                <span>Xem thông tin bài thi</span>
+                              </button>
+
+                              {isGraded && (
+                                <button
+                                  onClick={() => handleOpenReviewModal(item)}
+                                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium transition-all"
+                                  type="button"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">
+                                    gavel
+                                  </span>
+                                  <span>Đề nghị phúc khảo</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
 
-      {/* 3. MODAL ĐƠN PHÚC KHẢO */}
+      {/* 3. MODAL XEM THÔNG TIN BÀI THI */}
+      {selectedDetailExam && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-150">
+            <div className="p-5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 text-[#00236f] flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">assignment</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+                    Thông tin bài thi đã nộp
+                  </span>
+                  <span className="text-base font-bold text-slate-900">
+                    {selectedDetailExam.subjectName || 'Chi tiết bài thi'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedDetailExam(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="p-5 flex flex-col gap-4 text-xs">
+              <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className="flex justify-between py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Môn học:</span>
+                  <span className="font-bold text-slate-800">{selectedDetailExam.subjectName}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Kỳ thi:</span>
+                  <span className="font-semibold text-slate-800">{selectedDetailExam.examTitle}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Điểm số:</span>
+                  <span className="font-bold text-[#00236f]">
+                    {selectedDetailExam.score !== null ? `${Number(selectedDetailExam.score).toFixed(1)} / 10` : 'Chờ chấm điểm'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Trạng thái nộp bài:</span>
+                  <span className="font-semibold text-slate-800">{selectedDetailExam.statusSubmission}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Trạng thái chấm:</span>
+                  <span className="font-semibold text-slate-800">{selectedDetailExam.statusGrading}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200/60 font-mono text-[11px]">
+                  <span className="text-slate-500 font-sans">Mã lịch sử (History ID):</span>
+                  <span className="text-slate-600 truncate max-w-[240px]">{selectedDetailExam.historyId}</span>
+                </div>
+                <div className="flex justify-between py-1 font-mono text-[11px]">
+                  <span className="text-slate-500 font-sans">Mã kỳ thi (Exam ID):</span>
+                  <span className="text-slate-600 truncate max-w-[240px]">{selectedDetailExam.examId}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-1">
+                <span className="font-semibold text-slate-700">Nhận xét của Giảng viên:</span>
+                <p className="text-slate-600 italic">
+                  {selectedDetailExam.feedback && selectedDetailExam.feedback.trim()
+                    ? `"${selectedDetailExam.feedback}"`
+                    : 'Chưa có nhận xét cho bài thi này.'}
+                </p>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={() => setSelectedDetailExam(null)}
+                  className="px-4 py-2 rounded-xl bg-[#00236f] hover:bg-blue-900 text-white font-semibold transition-colors"
+                  type="button"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. MODAL ĐƠN PHÚC KHẢO */}
       {selectedReviewExam && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-150">
@@ -531,7 +753,7 @@ export const HistoryExamPage: React.FC = () => {
                     Đơn phúc khảo trực tuyến
                   </span>
                   <span className="text-base font-bold text-slate-900">
-                    {selectedReviewExam.code}
+                    {selectedReviewExam.subjectName}
                   </span>
                 </div>
               </div>
@@ -549,18 +771,18 @@ export const HistoryExamPage: React.FC = () => {
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-1">
                 <span className="text-slate-400">Học phần đề nghị:</span>
                 <span className="font-bold text-[#00236f] text-sm">
-                  {selectedReviewExam.name}
+                  {selectedReviewExam.subjectName} - {selectedReviewExam.examTitle}
                 </span>
                 <div className="flex items-center justify-between text-slate-600 pt-2 mt-1 border-t border-slate-200">
                   <span>
-                    Điểm hiện tại:{' '}
+                    Điểm số hiện tại:{' '}
                     <strong className="text-[#00236f] font-bold">
-                      {selectedReviewExam.finalScore.toFixed(1)}/10
+                      {selectedReviewExam.score !== null ? Number(selectedReviewExam.score).toFixed(1) : '--'}/10
                     </strong>
                   </span>
                   <span>
-                    Giảng viên chấm 1:{' '}
-                    <strong className="text-slate-800">{selectedReviewExam.lecturerName}</strong>
+                    Trạng thái:{' '}
+                    <strong className="text-slate-800">{selectedReviewExam.statusGrading}</strong>
                   </span>
                 </div>
               </div>
@@ -602,7 +824,7 @@ export const HistoryExamPage: React.FC = () => {
                   Hủy bỏ
                 </button>
                 <button
-                  className="px-5 py-2 rounded-xl bg-[#00236f] hover:bg-[#1e3a8a] text-white font-bold transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-[#00236f] hover:bg-blue-900 text-white font-bold transition-all shadow-sm flex items-center gap-1.5"
                   type="submit"
                 >
                   <span className="material-symbols-outlined text-[16px]">send</span>
@@ -616,4 +838,5 @@ export const HistoryExamPage: React.FC = () => {
     </div>
   );
 };
+
 export default HistoryExamPage;

@@ -259,68 +259,6 @@ paths:
         '403':
           description: Không có quyền truy cập (Chỉ dành cho sinh viên)
 
-  /api/v1/student/history/{historyId}:
-    get:
-      tags:
-        - Student - Exam History
-      summary: Xem chi tiết 1 bài kiểm tra đã làm theo ID lịch sử
-      description: Xem tổng quan kết quả ca thi, điểm số, đánh giá nhận xét của giảng viên. Hệ thống tự động đối soát quyền sở hữu bài thi thông qua Token của người đăng nhập.
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: historyId
-          in: path
-          required: true
-          description: ID bản ghi lịch sử nộp bài (UUID)
-          schema:
-            type: string
-            format: uuid
-            example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
-      responses:
-        '200':
-          description: Lấy chi tiết lịch sử bài thi thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StudentExamHistoryDetailResponse'
-        '401':
-          description: Chưa đăng nhập hoặc Token hết hạn
-        '403':
-          description: Không có quyền truy cập (Không phải chủ sở hữu bài thi này)
-        '404':
-          description: Không tìm thấy bài thi hoặc lịch sử không tồn tại
-
-  /api/v1/student/history/{historyId}/submission-details:
-    get:
-      tags:
-        - Student - Exam History
-      summary: Xem chi tiết đề bài, câu trả lời đã nộp và phân tích AI Stylometry
-      description: Đi sâu vào xem câu hỏi trong đề, nội dung câu trả lời tự luận mà sinh viên đã nộp cùng kết quả phân tích AI Stylometry (đạo văn, từ vựng, ngữ pháp).
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: historyId
-          in: path
-          required: true
-          description: ID bản ghi lịch sử nộp bài (UUID)
-          schema:
-            type: string
-            format: uuid
-            example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
-      responses:
-        '200':
-          description: Lấy chi tiết câu hỏi và câu trả lời thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StudentSubmissionDeepDetailResponse'
-        '401':
-          description: Chưa đăng nhập hoặc Token hết hạn
-        '403':
-          description: Không có quyền truy cập (Không phải chủ sở hữu bài thi này)
-        '404':
-          description: Không tìm thấy bài làm
-
   # =========================================================================
   # 6. QUẢN LÝ KỲ THI DÀNH CHO GIÁO VIÊN (TEACHER EXAM MANAGEMENT)
   # =========================================================================
@@ -661,7 +599,7 @@ components:
           description: Nội dung chi tiết của câu hỏi / đề bài
 
     # 8. Lịch sử bài thi tóm tắt (danh sách)
-    StudentExamHistorySummaryResponse:
+    HistoryExamResponse:
       type: object
       properties:
         historyId:
@@ -674,166 +612,31 @@ components:
           format: uuid
           example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
           description: ID kỳ thi
-        courseCode:
-          type: string
-          example: "CS201"
-          description: Mã môn học
-        courseTitle:
-          type: string
-          example: "Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng"
-          description: Tên môn học
         examTitle:
           type: string
           example: "Thi Viết Tự Luận Thuật Toán"
-          description: Tên kỳ thi
-        examType:
+          description: Tiêu đề kỳ thi
+        subjectName:
           type: string
-          example: "Tự luận giải thuật"
-          description: Loại hình thi
-        submissionAt:
-          type: string
-          format: date-time
-          example: "2024-10-12T11:25:00"
-          description: Thời điểm nộp bài
+          example: "Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng"
+          description: Tên môn học
         score:
           type: number
           format: float
           example: 9.0
           description: Điểm số đạt được
-        statusGrading:
-          type: string
-          example: "GRADED"
-          description: Trạng thái chấm điểm (GRADED, PENDING)
         feedback:
           type: string
           example: "Phần lập luận thuật toán tối ưu tốt, mã giả rõ ràng."
           description: Nhận xét tóm tắt từ giảng viên
-        lecturerName:
+        statusSubmission:
           type: string
-          example: "TS. Lê Quang Mai"
-          description: Tên giảng viên chấm bài
-
-    # 9. Chi tiết 1 lịch sử ca thi
-    StudentExamHistoryDetailResponse:
-      type: object
-      properties:
-        historyId:
+          example: "SUBMITTED"
+          description: Trạng thái nộp bài
+        statusGrading:
           type: string
-          format: uuid
-          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
-        courseCode:
-          type: string
-          example: "CS201"
-        courseTitle:
-          type: string
-          example: "Cấu Trúc Dữ Liệu & Giải Thuật Ứng Dụng"
-        examTitle:
-          type: string
-          example: "Tự Luận Giải Thuật Nâng Cao"
-        examType:
-          type: string
-          example: "Tự luận giải thuật"
-        durationMinutes:
-          type: integer
-          example: 120
-        submissionAt:
-          type: string
-          format: date-time
-          example: "2024-10-12T11:25:00"
-        gradeAt:
-          type: string
-          format: date-time
-          example: "2024-10-13T14:20:00"
-        lecturerName:
-          type: string
-          example: "TS. Lê Quang Mai"
-        department:
-          type: string
-          example: "Bộ môn Khoa Học Máy Tính"
-        score:
-          type: number
-          format: float
-          example: 9.0
-        letterGrade:
-          type: string
-          example: "A"
-        gradeBadgeText:
-          type: string
-          example: "Xuất sắc"
-        feedback:
-          type: string
-          example: "Phần lập luận thuật toán tối ưu tốt, mã giả rõ ràng, bài viết tự luận phân tích độ phức tạp thời gian O(n log n) rất sâu sắc và thuyết phục."
-        similarityPercentage:
-          type: number
-          format: float
-          example: 3.2
-          description: Tỷ lệ trùng lặp phát hiện bởi AI (%)
-        aiStatusFlag:
-          type: string
-          example: "NORMAL"
-          description: Cờ cảnh báo AI (NORMAL, SUSPICIOUS, AI_GENERATED)
-
-    # 10. Đi sâu vào chi tiết câu hỏi và bài làm đã nộp
-    StudentSubmissionDeepDetailResponse:
-      type: object
-      properties:
-        historyId:
-          type: string
-          format: uuid
-          example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
-        question:
-          type: object
-          properties:
-            questionId:
-              type: string
-              format: uuid
-              example: "d3b07384-d113-4f44-96f7-bca888d3a111"
-            content:
-              type: string
-              example: "Trình bày thuật toán tìm đường đi ngắn nhất Dijkstra và phân tích độ phức tạp khi sử dụng Min-Heap."
-        studentAnswer:
-          type: object
-          properties:
-            answerId:
-              type: string
-              format: uuid
-              example: "9a2f76c5-4d22-4217-a068-07d0f171e54a"
-            content:
-              type: string
-              example: "Để giải bài toán tìm đường đi ngắn nhất từ một đỉnh nguồn tới tất cả các đỉnh còn lại trong đồ thị có trọng số không âm, thuật toán Dijkstra hoạt động theo nguyên lý tham lam..."
-            wordCount:
-              type: integer
-              example: 450
-        aiReport:
-          type: object
-          properties:
-            reportId:
-              type: string
-              format: uuid
-              example: "fa4b611e-8e36-4d1b-80df-5e4a8f9c1122"
-            statusFlag:
-              type: string
-              example: "HUMAN_WRITTEN"
-            perplexity:
-              type: string
-              example: "68.4"
-              description: Độ đo tính bất ngờ của từ ngữ trong văn bản
-            burstiness:
-              type: string
-              example: "0.42"
-              description: Độ biến thiên cấu trúc câu
-            stylometryDetails:
-              type: object
-              properties:
-                vocabularyScore:
-                  type: string
-                  example: "4.8/5.0"
-                grammarScore:
-                  type: string
-                  example: "4.2/5.0"
-                analysisNote:
-                  type: string
-                  example: "Văn phong tự nhiên, có dấu ấn tác phong sinh viên đặc trưng."
+          example: "GRADED"
+          description: Trạng thái chấm điểm (GRADED, PENDING)
 
     # 11. Yêu cầu nộp bài của Sinh viên
     SubmitExamRequest:

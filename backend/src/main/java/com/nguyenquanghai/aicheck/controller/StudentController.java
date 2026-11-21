@@ -28,5 +28,12 @@ public class StudentController {
         List<ListExamResponse> exams = studentService.getActiveOrPrepareExam();
         return ResponseEntity.ok(exams);
     }
-    
+
+    @GetMapping("/history")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<List<HistoryExamResponse>> getHistory() {
+        List<HistoryExamResponse> history = studentService.getHistoryExam();
+        return ResponseEntity.ok(history);
+    }
+
 }

@@ -193,4 +193,10 @@ public class StudentService {
                 .build();
     }
 
+    // View history exam
+    @Transactional
+    public List<HistoryExamResponse> getHistoryExam() {
+        UUID currentStudentId = SecurityUtils.getCurrentUserId();
+        return historyRepository.findStudentExamHistory(currentStudentId);
+    }
 }
